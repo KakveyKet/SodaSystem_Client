@@ -18,6 +18,7 @@
     "tailwindcss": "latest",
     "tailwindcss-primeui": "latest",
     "vue": "latest",
+    "vue-i18n": "^10.0.8",
     "vue-router": "latest"
   },
   "devDependencies": {

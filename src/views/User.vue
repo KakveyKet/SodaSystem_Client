@@ -1,18 +1,26 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import {
+  computed,
+  onMounted,
+  ref
+} from "vue";
 
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Column from 'primevue/column';
-import DataTable from 'primevue/datatable';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
-import Password from 'primevue/password';
-import Select from 'primevue/select';
-import Tag from 'primevue/tag';
+import { useI18n } from "vue-i18n";
 
-import api from '../services/api';
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Column from "primevue/column";
+import DataTable from "primevue/datatable";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
+import Message from "primevue/message";
+import Password from "primevue/password";
+import Select from "primevue/select";
+import Tag from "primevue/tag";
+
+import api from "../services/api";
+
+const { t, locale } = useI18n();
 
 const users = ref([]);
 
@@ -26,40 +34,52 @@ const isEditMode = ref(false);
 
 const selectedUser = ref(null);
 
-const errorMessage = ref('');
-const successMessage = ref('');
+const errorMessage = ref("");
+const successMessage = ref("");
 
-const search = ref('');
+const search = ref("");
 const filterRole = ref(null);
 
 const page = ref(1);
 const limit = ref(10);
 const totalRecords = ref(0);
 
-const roleOptions = [
-  {
-    label: 'User',
-    value: 'user'
-  },
-  {
-    label: 'Administrator',
-    value: 'admin'
-  }
-];
+/*
+|--------------------------------------------------------------------------
+| Role options
+|--------------------------------------------------------------------------
+|
+| Computed is required so labels change immediately when the application
+| language changes.
+|
+*/
+
+const roleOptions = computed(() => {
+  return [
+    {
+      label: t("user.roles.user"),
+      value: "user",
+    },
+    {
+      label: t("user.roles.admin"),
+      value: "admin",
+    },
+  ];
+});
 
 const form = ref({
   id: null,
-  name: '',
-  email: '',
-  password: '',
-  role: 'user'
+  name: "",
+  email: "",
+  password: "",
+  role: "user",
 });
 
 const totalPages = computed(() => {
   return Math.max(
     Math.ceil(
       Number(totalRecords.value || 0) /
-      Number(limit.value || 10)
+        Number(limit.value || 10)
     ),
     1
   );
@@ -69,7 +89,11 @@ const extractArrayData = (
   response,
   keys = []
 ) => {
-  if (Array.isArray(response.data?.data)) {
+  if (
+    Array.isArray(
+      response.data?.data
+    )
+  ) {
     return response.data.data;
   }
 
@@ -100,7 +124,8 @@ const extractTotalRecords = (
 ) => {
   return (
     response.data?.pagination?.total ??
-    response.data?.data?.pagination?.total ??
+    response.data?.data?.pagination
+      ?.total ??
     response.data?.data?.total ??
     response.data?.total ??
     fallback
@@ -108,83 +133,130 @@ const extractTotalRecords = (
 };
 
 const getUserId = (user) => {
-  return user?.id || user?._id || null;
+  return (
+    user?.id ||
+    user?._id ||
+    null
+  );
 };
+
+/*
+|--------------------------------------------------------------------------
+| Date formatting
+|--------------------------------------------------------------------------
+*/
 
 const formatDate = (value) => {
   if (!value) {
-    return '-';
+    return "-";
   }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
-    return '-';
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "-";
   }
 
-  return date.toLocaleString();
+  const dateLocale =
+    locale.value === "km"
+      ? "km-KH"
+      : "en-GB";
+
+  return date.toLocaleString(
+    dateLocale,
+    {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
 };
 
 const getRoleLabel = (role) => {
-  return role === 'admin'
-    ? 'Administrator'
-    : 'User';
+  return role === "admin"
+    ? t("user.roles.admin")
+    : t("user.roles.user");
 };
 
 const getRoleSeverity = (role) => {
-  return role === 'admin'
-    ? 'danger'
-    : 'info';
+  return role === "admin"
+    ? "danger"
+    : "info";
+};
+
+const getApiErrorMessage = (
+  error,
+  fallbackKey
+) => {
+  return (
+    error.response?.data?.message ||
+    t(fallbackKey)
+  );
 };
 
 const clearMessages = () => {
-  errorMessage.value = '';
-  successMessage.value = '';
+  errorMessage.value = "";
+  successMessage.value = "";
 };
 
 const resetForm = () => {
   form.value = {
     id: null,
-    name: '',
-    email: '',
-    password: '',
-    role: 'user'
+    name: "",
+    email: "",
+    password: "",
+    role: "user",
   };
 };
+
+/*
+|--------------------------------------------------------------------------
+| Fetch users
+|--------------------------------------------------------------------------
+*/
 
 const fetchUsers = async () => {
   try {
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
 
     const params = {
       page: page.value,
-      limit: limit.value
+      limit: limit.value,
     };
 
     if (search.value.trim()) {
-      params.search = search.value.trim();
+      params.search =
+        search.value.trim();
     }
 
     if (filterRole.value) {
-      params.role = filterRole.value;
+      params.role =
+        filterRole.value;
     }
 
     const response = await api.get(
-      '/users',
+      "/users",
       {
-        params
+        params,
       }
     );
 
-    users.value = extractArrayData(
-      response,
-      [
-        'users',
-        'items',
-        'results'
-      ]
-    );
+    users.value =
+      extractArrayData(
+        response,
+        [
+          "users",
+          "items",
+          "results",
+        ]
+      );
 
     totalRecords.value =
       extractTotalRecords(
@@ -193,15 +265,17 @@ const fetchUsers = async () => {
       );
   } catch (error) {
     console.error(
-      'Fetch users error:',
+      "Fetch users error:",
       error
     );
 
     users.value = [];
 
     errorMessage.value =
-      error.response?.data?.message ||
-      'Could not fetch users';
+      getApiErrorMessage(
+        error,
+        "user.errors.fetch"
+      );
   } finally {
     loading.value = false;
   }
@@ -213,7 +287,7 @@ const applyFilter = () => {
 };
 
 const clearFilter = () => {
-  search.value = '';
+  search.value = "";
   filterRole.value = null;
   page.value = 1;
 
@@ -221,8 +295,11 @@ const clearFilter = () => {
 };
 
 const onPageChange = (event) => {
-  page.value = event.page + 1;
-  limit.value = event.rows;
+  page.value =
+    event.page + 1;
+
+  limit.value =
+    event.rows;
 
   fetchUsers();
 };
@@ -236,20 +313,29 @@ const goToPreviousPage = () => {
   }
 
   page.value -= 1;
+
   fetchUsers();
 };
 
 const goToNextPage = () => {
   if (
     loading.value ||
-    page.value >= totalPages.value
+    page.value >=
+      totalPages.value
   ) {
     return;
   }
 
   page.value += 1;
+
   fetchUsers();
 };
+
+/*
+|--------------------------------------------------------------------------
+| Form dialog
+|--------------------------------------------------------------------------
+*/
 
 const openCreateDialog = () => {
   clearMessages();
@@ -264,10 +350,10 @@ const openEditDialog = (user) => {
 
   form.value = {
     id: getUserId(user),
-    name: user.name || '',
-    email: user.email || '',
-    password: '',
-    role: user.role || 'user'
+    name: user.name || "",
+    email: user.email || "",
+    password: "",
+    role: user.role || "user",
   };
 
   isEditMode.value = true;
@@ -280,16 +366,25 @@ const closeFormDialog = () => {
   }
 
   formDialogVisible.value = false;
+
   resetForm();
 };
 
 const validateForm = () => {
-  if (!form.value.name.trim()) {
-    return 'Name is required';
+  if (
+    !form.value.name.trim()
+  ) {
+    return t(
+      "user.errors.nameRequired"
+    );
   }
 
-  if (!form.value.email.trim()) {
-    return 'Email is required';
+  if (
+    !form.value.email.trim()
+  ) {
+    return t(
+      "user.errors.emailRequired"
+    );
   }
 
   const emailPattern =
@@ -300,41 +395,54 @@ const validateForm = () => {
       form.value.email.trim()
     )
   ) {
-    return 'Please enter a valid email';
+    return t(
+      "user.errors.emailInvalid"
+    );
   }
 
   if (
     !isEditMode.value &&
     !form.value.password
   ) {
-    return 'Password is required';
+    return t(
+      "user.errors.passwordRequired"
+    );
   }
 
   if (
     form.value.password &&
     form.value.password.length < 6
   ) {
-    return 'Password must be at least 6 characters';
+    return t(
+      "user.errors.passwordMin"
+    );
   }
 
   if (
-    !['user', 'admin'].includes(
+    !["user", "admin"].includes(
       form.value.role
     )
   ) {
-    return 'Please select a valid role';
+    return t(
+      "user.errors.roleInvalid"
+    );
   }
 
-  return '';
+  return "";
 };
 
 const buildPayload = () => {
   const payload = {
-    name: form.value.name.trim(),
-    email: form.value.email
-      .trim()
-      .toLowerCase(),
-    role: form.value.role
+    name:
+      form.value.name.trim(),
+
+    email:
+      form.value.email
+        .trim()
+        .toLowerCase(),
+
+    role:
+      form.value.role,
   };
 
   if (form.value.password) {
@@ -347,8 +455,8 @@ const buildPayload = () => {
 
 const saveUser = async () => {
   try {
-    errorMessage.value = '';
-    successMessage.value = '';
+    errorMessage.value = "";
+    successMessage.value = "";
 
     const validationError =
       validateForm();
@@ -362,7 +470,8 @@ const saveUser = async () => {
 
     saving.value = true;
 
-    const payload = buildPayload();
+    const payload =
+      buildPayload();
 
     if (isEditMode.value) {
       await api.put(
@@ -371,34 +480,47 @@ const saveUser = async () => {
       );
 
       successMessage.value =
-        'User updated successfully';
+        t(
+          "user.messages.updated"
+        );
     } else {
       await api.post(
-        '/users',
+        "/users",
         payload
       );
 
       successMessage.value =
-        'User created successfully';
+        t(
+          "user.messages.created"
+        );
     }
 
     formDialogVisible.value = false;
+
     resetForm();
 
     await fetchUsers();
   } catch (error) {
     console.error(
-      'Save user error:',
+      "Save user error:",
       error
     );
 
     errorMessage.value =
-      error.response?.data?.message ||
-      'Could not save user';
+      getApiErrorMessage(
+        error,
+        "user.errors.save"
+      );
   } finally {
     saving.value = false;
   }
 };
+
+/*
+|--------------------------------------------------------------------------
+| Delete user
+|--------------------------------------------------------------------------
+*/
 
 const openDeleteDialog = (user) => {
   clearMessages();
@@ -423,17 +545,21 @@ const confirmDeleteUser = async () => {
 
   try {
     deleting.value = true;
-    errorMessage.value = '';
-    successMessage.value = '';
+    errorMessage.value = "";
+    successMessage.value = "";
 
-    const userId = getUserId(
-      selectedUser.value
-    );
+    const userId =
+      getUserId(
+        selectedUser.value
+      );
 
     if (!userId) {
-      throw new Error(
-        'User ID was not found'
-      );
+      errorMessage.value =
+        t(
+          "user.errors.idMissing"
+        );
+
+      return;
     }
 
     await api.delete(
@@ -441,7 +567,9 @@ const confirmDeleteUser = async () => {
     );
 
     successMessage.value =
-      'User deleted successfully';
+      t(
+        "user.messages.deleted"
+      );
 
     deleteDialogVisible.value = false;
     selectedUser.value = null;
@@ -456,14 +584,15 @@ const confirmDeleteUser = async () => {
     await fetchUsers();
   } catch (error) {
     console.error(
-      'Delete user error:',
+      "Delete user error:",
       error
     );
 
     errorMessage.value =
-      error.response?.data?.message ||
-      error.message ||
-      'Could not delete user';
+      getApiErrorMessage(
+        error,
+        "user.errors.delete"
+      );
 
     deleteDialogVisible.value = false;
   } finally {
@@ -478,29 +607,70 @@ onMounted(() => {
 
 <template>
   <div
-    class="mx-auto w-full max-w-7xl p-2 sm:p-4 lg:p-6"
+    class="
+      mx-auto
+      w-full
+      max-w-7xl
+      p-2
+      sm:p-4
+      lg:p-6
+    "
   >
     <Card>
       <template #title>
         <div
-          class="flex items-center justify-between gap-3"
+          class="
+            flex
+            items-center
+            justify-between
+            gap-3
+          "
         >
-          <div class="flex items-center gap-3">
+          <div
+            class="
+              flex
+              min-w-0
+              items-center
+              gap-3
+            "
+          >
             <div
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700"
+              class="
+                flex
+                h-10
+                w-10
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                bg-cyan-100
+                text-cyan-700
+              "
             >
-              <i class="pi pi-user-edit"></i>
+              <i
+                class="
+                  pi
+                  pi-user-edit
+                "
+              ></i>
             </div>
 
             <h1
-              class="text-xl font-bold sm:text-2xl"
+              class="
+                truncate
+                text-xl
+                font-bold
+                sm:text-2xl
+              "
             >
-              Users
+              {{ t("user.title") }}
             </h1>
           </div>
 
           <Button
-            label="Add"
+            :label="
+              t('user.add')
+            "
             icon="pi pi-plus"
             size="small"
             @click="openCreateDialog"
@@ -514,7 +684,9 @@ onMounted(() => {
           severity="error"
           class="mb-3"
           closable
-          @close="errorMessage = ''"
+          @close="
+            errorMessage = ''
+          "
         >
           {{ errorMessage }}
         </Message>
@@ -524,19 +696,35 @@ onMounted(() => {
           severity="success"
           class="mb-3"
           closable
-          @close="successMessage = ''"
+          @close="
+            successMessage = ''
+          "
         >
           {{ successMessage }}
         </Message>
 
+        <!-- Filters -->
+
         <div
-          class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_190px_auto]"
+          class="
+            mb-4
+            grid
+            grid-cols-1
+            gap-2
+            sm:grid-cols-[1fr_190px_auto]
+          "
         >
           <InputText
             v-model="search"
             class="w-full"
-            placeholder="Search name or email..."
-            @keyup.enter="applyFilter"
+            :placeholder="
+              t(
+                'user.searchPlaceholder'
+              )
+            "
+            @keyup.enter="
+              applyFilter
+            "
           />
 
           <Select
@@ -544,16 +732,25 @@ onMounted(() => {
             :options="roleOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="All roles"
+            :placeholder="
+              t('user.allRoles')
+            "
             class="w-full"
             showClear
           />
 
           <div
-            class="grid grid-cols-2 gap-2 sm:flex"
+            class="
+              grid
+              grid-cols-2
+              gap-2
+              sm:flex
+            "
           >
             <Button
-              label="Search"
+              :label="
+                t('user.search')
+              "
               icon="pi pi-search"
               @click="applyFilter"
             />
@@ -562,110 +759,256 @@ onMounted(() => {
               icon="pi pi-refresh"
               severity="secondary"
               outlined
-              aria-label="Reset"
+              :aria-label="
+                t('user.reset')
+              "
+              :title="
+                t('user.reset')
+              "
               @click="clearFilter"
             />
           </div>
         </div>
 
         <!-- Smartphone cards -->
-        <div class="space-y-3 md:hidden">
+
+        <div
+          class="
+            space-y-3
+            md:hidden
+          "
+        >
           <div
             v-if="loading"
-            class="py-10 text-center"
+            class="
+              py-10
+              text-center
+            "
           >
             <i
-              class="pi pi-spin pi-spinner text-2xl text-primary"
+              class="
+                pi
+                pi-spin
+                pi-spinner
+                text-2xl
+                text-primary
+              "
             ></i>
           </div>
 
-          <article
-            v-for="user in users"
-            v-else
-            :key="getUserId(user)"
-            class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          >
-            <div
-              class="flex items-start justify-between gap-3"
+          <template v-else>
+            <article
+              v-for="user in users"
+              :key="
+                getUserId(user)
+              "
+              class="
+                rounded-xl
+                border
+                border-gray-200
+                bg-white
+                p-4
+                shadow-sm
+              "
             >
-              <div class="min-w-0">
-                <h2
-                  class="truncate text-lg font-bold"
+              <div
+                class="
+                  flex
+                  items-start
+                  justify-between
+                  gap-3
+                "
+              >
+                <div class="min-w-0">
+                  <h2
+                    class="
+                      truncate
+                      text-lg
+                      font-bold
+                    "
+                  >
+                    {{
+                      user.name ||
+                      "-"
+                    }}
+                  </h2>
+
+                  <div
+                    class="
+                      mt-1
+                      break-all
+                      text-sm
+                      text-gray-500
+                    "
+                  >
+                    {{
+                      user.email ||
+                      "-"
+                    }}
+                  </div>
+                </div>
+
+                <Tag
+                  :value="
+                    getRoleLabel(
+                      user.role
+                    )
+                  "
+                  :severity="
+                    getRoleSeverity(
+                      user.role
+                    )
+                  "
+                />
+              </div>
+
+              <div
+                class="
+                  mt-3
+                  rounded-lg
+                  bg-gray-50
+                  p-3
+                "
+              >
+                <div
+                  class="
+                    text-xs
+                    text-gray-500
+                  "
                 >
-                  {{ user.name || '-' }}
-                </h2>
+                  {{
+                    t(
+                      "user.created"
+                    )
+                  }}
+                </div>
 
                 <div
-                  class="mt-1 break-all text-sm text-gray-500"
+                  class="
+                    mt-1
+                    text-sm
+                    font-medium
+                  "
                 >
-                  {{ user.email || '-' }}
+                  {{
+                    formatDate(
+                      user.createdAt
+                    )
+                  }}
                 </div>
               </div>
 
-              <Tag
-                :value="getRoleLabel(user.role)"
-                :severity="getRoleSeverity(user.role)"
-              />
-            </div>
+              <div
+                class="
+                  mt-3
+                  grid
+                  grid-cols-2
+                  gap-2
+                "
+              >
+                <Button
+                  :label="
+                    t('user.edit')
+                  "
+                  icon="pi pi-pencil"
+                  severity="info"
+                  outlined
+                  @click="
+                    openEditDialog(
+                      user
+                    )
+                  "
+                />
+
+                <Button
+                  :label="
+                    t('user.delete')
+                  "
+                  icon="pi pi-trash"
+                  severity="danger"
+                  outlined
+                  @click="
+                    openDeleteDialog(
+                      user
+                    )
+                  "
+                />
+              </div>
+            </article>
 
             <div
-              class="mt-3 rounded-lg bg-gray-50 p-3"
+              v-if="!users.length"
+              class="
+                rounded-xl
+                border
+                border-dashed
+                border-gray-300
+                py-10
+                text-center
+                text-gray-500
+              "
             >
-              <div class="text-xs text-gray-500">
-                Created
-              </div>
-
-              <div class="mt-1 text-sm font-medium">
-                {{ formatDate(user.createdAt) }}
-              </div>
+              {{
+                t(
+                  "user.noUsers"
+                )
+              }}
             </div>
-
-            <div
-              class="mt-3 grid grid-cols-2 gap-2"
-            >
-              <Button
-                label="Edit"
-                icon="pi pi-pencil"
-                severity="info"
-                outlined
-                @click="openEditDialog(user)"
-              />
-
-              <Button
-                label="Delete"
-                icon="pi pi-trash"
-                severity="danger"
-                outlined
-                @click="openDeleteDialog(user)"
-              />
-            </div>
-          </article>
-
-          <div
-            v-if="!loading && !users.length"
-            class="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-500"
-          >
-            No users found.
-          </div>
+          </template>
 
           <div
             v-if="totalRecords > 0"
-            class="flex items-center justify-between rounded-xl border border-gray-200 p-2"
+            class="
+              flex
+              items-center
+              justify-between
+              rounded-xl
+              border
+              border-gray-200
+              p-2
+            "
           >
             <Button
               icon="pi pi-chevron-left"
               severity="secondary"
               text
               rounded
+              :aria-label="
+                t('user.pageOf', {
+                  page:
+                    Math.max(
+                      page - 1,
+                      1
+                    ),
+                  total:
+                    totalPages
+                })
+              "
               :disabled="
                 page <= 1 ||
                 loading
               "
-              @click="goToPreviousPage"
+              @click="
+                goToPreviousPage
+              "
             />
 
-            <span class="text-sm font-medium">
-              Page {{ page }} of {{ totalPages }}
+            <span
+              class="
+                text-sm
+                font-medium
+              "
+            >
+              {{
+                t(
+                  "user.pageOf",
+                  {
+                    page,
+                    total:
+                      totalPages
+                  }
+                )
+              }}
             </span>
 
             <Button
@@ -673,17 +1016,37 @@ onMounted(() => {
               severity="secondary"
               text
               rounded
+              :aria-label="
+                t('user.pageOf', {
+                  page:
+                    Math.min(
+                      page + 1,
+                      totalPages
+                    ),
+                  total:
+                    totalPages
+                })
+              "
               :disabled="
-                page >= totalPages ||
+                page >=
+                  totalPages ||
                 loading
               "
-              @click="goToNextPage"
+              @click="
+                goToNextPage
+              "
             />
           </div>
         </div>
 
         <!-- Desktop table -->
-        <div class="hidden md:block">
+
+        <div
+          class="
+            hidden
+            md:block
+          "
+        >
           <DataTable
             :value="users"
             :loading="loading"
@@ -692,73 +1055,165 @@ onMounted(() => {
             scrollable
             dataKey="id"
             :rows="limit"
-            :first="(page - 1) * limit"
-            :totalRecords="totalRecords"
-            :rowsPerPageOptions="[5, 10, 20, 50]"
-            tableStyle="min-width: 850px"
+            :first="
+              (page - 1) * limit
+            "
+            :totalRecords="
+              totalRecords
+            "
+            :rowsPerPageOptions="
+              [5, 10, 20, 50]
+            "
+            tableStyle="
+              min-width: 850px
+            "
             @page="onPageChange"
           >
             <Column
               field="name"
-              header="Name"
-              style="min-width: 170px"
+              :header="
+                t(
+                  'user.columns.name'
+                )
+              "
+              style="
+                min-width: 170px
+              "
             >
-              <template #body="{ data }">
-                <span class="font-semibold">
-                  {{ data.name }}
+              <template
+                #body="{ data }"
+              >
+                <span
+                  class="font-semibold"
+                >
+                  {{
+                    data.name ||
+                    "-"
+                  }}
                 </span>
               </template>
             </Column>
 
             <Column
               field="email"
-              header="Email"
-              style="min-width: 220px"
+              :header="
+                t(
+                  'user.columns.email'
+                )
+              "
+              style="
+                min-width: 220px
+              "
             />
 
             <Column
               field="role"
-              header="Role"
-              style="min-width: 140px"
+              :header="
+                t(
+                  'user.columns.role'
+                )
+              "
+              style="
+                min-width: 140px
+              "
             >
-              <template #body="{ data }">
+              <template
+                #body="{ data }"
+              >
                 <Tag
-                  :value="getRoleLabel(data.role)"
-                  :severity="getRoleSeverity(data.role)"
+                  :value="
+                    getRoleLabel(
+                      data.role
+                    )
+                  "
+                  :severity="
+                    getRoleSeverity(
+                      data.role
+                    )
+                  "
                 />
               </template>
             </Column>
 
             <Column
               field="createdAt"
-              header="Created"
-              style="min-width: 180px"
+              :header="
+                t(
+                  'user.columns.created'
+                )
+              "
+              style="
+                min-width: 180px
+              "
             >
-              <template #body="{ data }">
-                {{ formatDate(data.createdAt) }}
+              <template
+                #body="{ data }"
+              >
+                {{
+                  formatDate(
+                    data.createdAt
+                  )
+                }}
               </template>
             </Column>
 
             <Column
-              header="Action"
+              :header="
+                t(
+                  'user.columns.action'
+                )
+              "
               frozen
               alignFrozen="right"
-              style="min-width: 120px"
+              style="
+                min-width: 120px
+              "
             >
-              <template #body="{ data }">
-                <div class="flex gap-2">
+              <template
+                #body="{ data }"
+              >
+                <div
+                  class="
+                    flex
+                    gap-2
+                  "
+                >
                   <Button
                     icon="pi pi-pencil"
                     size="small"
                     severity="info"
-                    @click="openEditDialog(data)"
+                    :aria-label="
+                      t('user.edit')
+                    "
+                    :title="
+                      t('user.edit')
+                    "
+                    @click="
+                      openEditDialog(
+                        data
+                      )
+                    "
                   />
 
                   <Button
                     icon="pi pi-trash"
                     size="small"
                     severity="danger"
-                    @click="openDeleteDialog(data)"
+                    :aria-label="
+                      t(
+                        'user.delete'
+                      )
+                    "
+                    :title="
+                      t(
+                        'user.delete'
+                      )
+                    "
+                    @click="
+                      openDeleteDialog(
+                        data
+                      )
+                    "
                   />
                 </div>
               </template>
@@ -766,9 +1221,17 @@ onMounted(() => {
 
             <template #empty>
               <div
-                class="py-8 text-center text-gray-500"
+                class="
+                  py-8
+                  text-center
+                  text-gray-500
+                "
               >
-                No users found.
+                {{
+                  t(
+                    "user.noUsers"
+                  )
+                }}
               </div>
             </template>
           </DataTable>
@@ -777,13 +1240,20 @@ onMounted(() => {
     </Card>
 
     <!-- Add/Edit user -->
+
     <Dialog
-      v-model:visible="formDialogVisible"
+      v-model:visible="
+        formDialogVisible
+      "
       modal
       :header="
         isEditMode
-          ? 'Edit User'
-          : 'Add User'
+          ? t(
+              'user.dialogs.editTitle'
+            )
+          : t(
+              'user.dialogs.addTitle'
+            )
       "
       :style="{
         width: '95vw',
@@ -803,40 +1273,75 @@ onMounted(() => {
 
         <div>
           <label
-            class="mb-1 block text-sm font-medium"
+            class="
+              mb-1
+              block
+              text-sm
+              font-medium
+            "
           >
-            Name
+            {{
+              t(
+                "user.fields.name"
+              )
+            }}
           </label>
 
           <InputText
             v-model="form.name"
             class="w-full"
-            placeholder="Enter name"
+            :placeholder="
+              t(
+                'user.placeholders.name'
+              )
+            "
             autocomplete="name"
           />
         </div>
 
         <div>
           <label
-            class="mb-1 block text-sm font-medium"
+            class="
+              mb-1
+              block
+              text-sm
+              font-medium
+            "
           >
-            Email
+            {{
+              t(
+                "user.fields.email"
+              )
+            }}
           </label>
 
           <InputText
             v-model="form.email"
             type="email"
             class="w-full"
-            placeholder="Enter email"
+            :placeholder="
+              t(
+                'user.placeholders.email'
+              )
+            "
             autocomplete="email"
           />
         </div>
 
         <div>
           <label
-            class="mb-1 block text-sm font-medium"
+            class="
+              mb-1
+              block
+              text-sm
+              font-medium
+            "
           >
-            Password
+            {{
+              t(
+                "user.fields.password"
+              )
+            }}
           </label>
 
           <Password
@@ -845,27 +1350,68 @@ onMounted(() => {
             input-class="w-full"
             :placeholder="
               isEditMode
-                ? 'Leave blank to keep current password'
-                : 'Enter password'
+                ? t(
+                    'user.placeholders.keepPassword'
+                  )
+                : t(
+                    'user.placeholders.password'
+                  )
             "
             :feedback="!isEditMode"
+            :promptLabel="
+              t(
+                'user.passwordStrength.prompt'
+              )
+            "
+            :weakLabel="
+              t(
+                'user.passwordStrength.weak'
+              )
+            "
+            :mediumLabel="
+              t(
+                'user.passwordStrength.medium'
+              )
+            "
+            :strongLabel="
+              t(
+                'user.passwordStrength.strong'
+              )
+            "
             toggleMask
             autocomplete="new-password"
           />
 
           <div
             v-if="isEditMode"
-            class="mt-1 text-xs text-gray-500"
+            class="
+              mt-1
+              text-xs
+              text-gray-500
+            "
           >
-            Leave password empty when it should not be changed.
+            {{
+              t(
+                "user.passwordHint"
+              )
+            }}
           </div>
         </div>
 
         <div>
           <label
-            class="mb-1 block text-sm font-medium"
+            class="
+              mb-1
+              block
+              text-sm
+              font-medium
+            "
           >
-            Role
+            {{
+              t(
+                "user.fields.role"
+              )
+            }}
           </label>
 
           <Select
@@ -873,7 +1419,11 @@ onMounted(() => {
             :options="roleOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Select role"
+            :placeholder="
+              t(
+                'user.placeholders.role'
+              )
+            "
             class="w-full"
           />
         </div>
@@ -881,21 +1431,36 @@ onMounted(() => {
 
       <template #footer>
         <div
-          class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end"
+          class="
+            grid
+            w-full
+            grid-cols-2
+            gap-2
+            sm:flex
+            sm:justify-end
+          "
         >
           <Button
-            label="Cancel"
+            :label="
+              t('user.cancel')
+            "
             severity="secondary"
             outlined
             :disabled="saving"
-            @click="closeFormDialog"
+            @click="
+              closeFormDialog
+            "
           />
 
           <Button
             :label="
               isEditMode
-                ? 'Update'
-                : 'Create'
+                ? t(
+                    'user.update'
+                  )
+                : t(
+                    'user.create'
+                  )
             "
             icon="pi pi-save"
             :loading="saving"
@@ -906,10 +1471,17 @@ onMounted(() => {
     </Dialog>
 
     <!-- Delete confirmation -->
+
     <Dialog
-      v-model:visible="deleteDialogVisible"
+      v-model:visible="
+        deleteDialogVisible
+      "
       modal
-      header="Delete User"
+      :header="
+        t(
+          'user.dialogs.deleteTitle'
+        )
+      "
       :style="{
         width: '94vw',
         maxWidth: '420px'
@@ -919,36 +1491,64 @@ onMounted(() => {
     >
       <div>
         <p>
-          Delete
-          <strong>
-            {{ selectedUser?.name }}
-          </strong>
-          ?
+          {{
+            t(
+              "user.deleteQuestion",
+              {
+                name:
+                  selectedUser?.name ||
+                  "-"
+              }
+            )
+          }}
         </p>
 
-        <p class="mt-2 text-sm text-gray-500">
-          This user will no longer be able to sign in.
+        <p
+          class="
+            mt-2
+            text-sm
+            text-gray-500
+          "
+        >
+          {{
+            t(
+              "user.deleteWarning"
+            )
+          }}
         </p>
       </div>
 
       <template #footer>
         <div
-          class="grid w-full grid-cols-2 gap-2"
+          class="
+            grid
+            w-full
+            grid-cols-2
+            gap-2
+          "
         >
           <Button
-            label="Cancel"
+            :label="
+              t('user.cancel')
+            "
             severity="secondary"
             outlined
             :disabled="deleting"
-            @click="closeDeleteDialog"
+            @click="
+              closeDeleteDialog
+            "
           />
 
           <Button
-            label="Delete"
+            :label="
+              t('user.delete')
+            "
             icon="pi pi-trash"
             severity="danger"
             :loading="deleting"
-            @click="confirmDeleteUser"
+            @click="
+              confirmDeleteUser
+            "
           />
         </div>
       </template>
@@ -989,7 +1589,8 @@ onMounted(() => {
     border-radius: 0 !important;
   }
 
-  .user-form-dialog .p-dialog-content {
+  .user-form-dialog
+    .p-dialog-content {
     overflow-y: auto;
   }
 }

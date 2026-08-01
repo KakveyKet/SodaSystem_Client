@@ -1,23 +1,77 @@
 <script setup>
-import { ref } from 'vue';
 import {
-  RouterLink,
+  computed,
+  ref
+} from "vue";
+
+import {
   useRoute,
   useRouter
-} from 'vue-router';
+} from "vue-router";
 
-import Button from 'primevue/button';
+import { useI18n } from "vue-i18n";
 
-import { useAuthStore } from '../stores/auth';
+import Button from "primevue/button";
+
+import { useAuthStore } from "../stores/auth";
+
+import LanguageSwitcher from "./LanguageSwitcher.vue";
+
+const router = useRouter();
+const route = useRoute();
 
 const auth = useAuthStore();
-const route = useRoute();
-const router = useRouter();
+
+const { t } = useI18n();
 
 const loggingOut = ref(false);
 
-const isActiveRoute = (routeName) => {
-  return route.name === routeName;
+const currentUser = computed(() => {
+  return (
+    auth.user ||
+    auth.currentUser ||
+    null
+  );
+});
+
+const currentUserName = computed(() => {
+  return (
+    currentUser.value?.name ||
+    currentUser.value?.username ||
+    currentUser.value?.email ||
+    "User"
+  );
+});
+
+const currentUserRole = computed(() => {
+  return (
+    currentUser.value?.role ||
+    "user"
+  );
+});
+
+const isDashboardActive = computed(() => {
+  return (
+    route.path === "/dashboard"
+  );
+});
+
+const isProfileActive = computed(() => {
+  return (
+    route.path === "/profile"
+  );
+});
+
+const goToDashboard = () => {
+  router.push({
+    name: "dashboard",
+  });
+};
+
+const goToProfile = () => {
+  router.push({
+    name: "profile",
+  });
 };
 
 const handleLogout = async () => {
@@ -28,16 +82,49 @@ const handleLogout = async () => {
   try {
     loggingOut.value = true;
 
-    await auth.logout();
+    /*
+     * Support different auth store
+     * logout implementations.
+     */
+    if (
+      typeof auth.logout ===
+      "function"
+    ) {
+      await auth.logout();
+    } else {
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "user"
+      );
+    }
 
     await router.replace({
-      name: 'login'
+      name: "login",
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error(
+      "Logout error:",
+      error
+    );
+
+    /*
+     * Even when backend logout
+     * fails, remove local auth
+     * information.
+     */
+    localStorage.removeItem(
+      "token"
+    );
+
+    localStorage.removeItem(
+      "user"
+    );
 
     await router.replace({
-      name: 'login'
+      name: "login",
     });
   } finally {
     loggingOut.value = false;
@@ -46,133 +133,261 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <header
-    class="sticky top-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur"
-  >
-    <nav
-      class="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-5 lg:px-8"
-    >
-      <!-- Application name -->
-      <RouterLink
-        :to="{ name: 'dashboard' }"
-        class="min-w-0"
-        aria-label="Go to dashboard"
-      >
-        <div
-          class="truncate text-base font-extrabold tracking-tight text-blue-700 transition hover:text-blue-800 sm:text-xl"
-        >
-          So Da Management
+  <header class="
+      sticky
+      top-0
+      z-50
+      border-b
+      border-gray-200
+      bg-white/95
+      shadow-sm
+      backdrop-blur
+    ">
+    <div class="
+        mx-auto
+        flex
+        min-h-16
+        max-w-7xl
+        items-center
+        justify-between
+        gap-2
+        px-3
+        sm:px-4
+        lg:px-6
+      ">
+      <!-- ========================== -->
+      <!-- Left: Logo / Application -->
+      <!-- ========================== -->
+
+      <button type="button" class="
+          flex
+          min-w-0
+          items-center
+          gap-2
+          rounded-lg
+          text-left
+          transition
+          hover:opacity-80
+          sm:gap-3
+        " @click="goToDashboard">
+        <div class="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            bg-blue-600
+            text-white
+            shadow-sm
+          ">
+          <i class="
+              pi
+              pi-chart-line
+              text-lg
+            "></i>
         </div>
 
-        <div
-          class="hidden text-xs font-medium text-gray-500 sm:block"
-        >
-          Management System
+        <div class="min-w-0">
+          <h1 class="
+              truncate
+              text-sm
+              font-extrabold
+              tracking-tight
+              text-gray-900
+              sm:text-base
+              lg:text-lg
+            ">
+            So Da Management
+          </h1>
+
+          <p class="
+              hidden
+              truncate
+              text-xs
+              text-gray-500
+              sm:block
+            ">
+            {{
+              t(
+                "dashboard.subtitle"
+              )
+            }}
+          </p>
         </div>
-      </RouterLink>
+      </button>
 
-      <!-- Authenticated menu -->
-      <div
-        v-if="auth.isAuthenticated"
-        class="flex shrink-0 items-center gap-2"
-      >
-        <RouterLink
-          :to="{ name: 'dashboard' }"
-          :class="[
-            'flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition active:scale-95 sm:px-4',
-            isActiveRoute('dashboard')
-              ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-              : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400 hover:bg-blue-100'
-          ]"
-          aria-label="Dashboard"
-          title="Dashboard"
-        >
-          <i class="pi pi-home text-base"></i>
 
-          <span class="hidden sm:inline">
-            Dashboard
+      <!-- ========================== -->
+      <!-- Right Actions -->
+      <!-- ========================== -->
+
+      <div class="
+          flex
+          shrink-0
+          items-center
+          gap-1
+          sm:gap-2
+        ">
+        <!-- Language -->
+
+        <div class="w-[66px] sm:w-[132px]">
+          <LanguageSwitcher />
+        </div>
+
+        <!-- Dashboard -->
+
+        <button type="button" class="
+            flex
+            h-10
+            items-center
+            justify-center
+            gap-2
+            rounded-lg
+            px-2
+            text-sm
+            font-medium
+            transition
+            sm:px-3
+          " :class="isDashboardActive
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
+            " :title="t('nav.dashboard')
+            " @click="goToDashboard">
+          <i class="
+              pi
+              pi-home
+              text-lg
+            "></i>
+
+          <span class="
+              hidden
+              lg:inline
+            ">
+            {{
+              t(
+                "nav.dashboard"
+              )
+            }}
           </span>
-        </RouterLink>
+        </button>
 
-        <RouterLink
-          :to="{ name: 'profile' }"
-          :class="[
-            'flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition active:scale-95 sm:px-4',
-            isActiveRoute('profile')
-              ? 'border-violet-600 bg-violet-600 text-white shadow-sm'
-              : 'border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-400 hover:bg-violet-100'
-          ]"
-          aria-label="Profile"
-          title="Profile"
-        >
-          <i class="pi pi-user text-base"></i>
 
-          <span class="hidden sm:inline">
-            Profile
+        <!-- Profile -->
+
+        <button type="button" class="
+            flex
+            h-10
+            items-center
+            justify-center
+            gap-2
+            rounded-lg
+            px-2
+            text-sm
+            font-medium
+            transition
+            sm:px-3
+          " :class="isProfileActive
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
+            " :title="t('nav.profile')
+            " @click="goToProfile">
+          <i class="
+              pi
+              pi-user
+              text-lg
+            "></i>
+
+          <span class="
+              hidden
+              lg:inline
+            ">
+            {{
+              t(
+                "nav.profile"
+              )
+            }}
           </span>
-        </RouterLink>
+        </button>
 
-        <Button
-          label="Logout"
-          icon="pi pi-sign-out"
-          severity="danger"
-          outlined
-          class="navbar-logout-button"
-          :loading="loggingOut"
-          :disabled="loggingOut"
-          aria-label="Logout"
-          title="Logout"
-          @click="handleLogout"
-        />
+
+        <!-- User Information -->
+
+        <div class="
+            hidden
+            border-l
+            border-gray-200
+            pl-3
+            xl:block
+          ">
+          <p class="
+              max-w-[150px]
+              truncate
+              text-xs
+              font-semibold
+              text-gray-800
+            ">
+            {{ currentUserName }}
+          </p>
+
+          <p class="
+              text-[11px]
+              capitalize
+              text-gray-500
+            ">
+            {{ currentUserRole }}
+          </p>
+        </div>
+
+
+        <!-- Logout -->
+
+        <Button type="button" severity="danger" text rounded :loading="loggingOut" :title="t('nav.logout')
+          " class="
+            !h-10
+            !min-w-10
+            !px-2
+            sm:!px-3
+          " @click="handleLogout">
+          <template #default>
+            <div class="
+                flex
+                items-center
+                gap-2
+              ">
+              <i v-if="
+                !loggingOut
+              " class="
+                  pi
+                  pi-sign-out
+                  text-lg
+                "></i>
+
+              <span class="
+                  hidden
+                  lg:inline
+                ">
+                {{
+                  t(
+                    "nav.logout"
+                  )
+                }}
+              </span>
+            </div>
+          </template>
+        </Button>
       </div>
-
-      <!-- Guest menu -->
-      <div
-        v-else
-        class="flex shrink-0 items-center"
-      >
-        <RouterLink
-          :to="{ name: 'login' }"
-          :class="[
-            'flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition active:scale-95',
-            isActiveRoute('login')
-              ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-              : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400 hover:bg-blue-100'
-          ]"
-          aria-label="Login"
-        >
-          <i class="pi pi-sign-in"></i>
-
-          <span>
-            Login
-          </span>
-        </RouterLink>
-      </div>
-    </nav>
+    </div>
   </header>
 </template>
 
 <style scoped>
-:deep(.navbar-logout-button) {
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 0.75rem;
-  font-weight: 600;
-}
+header {
+  -webkit-backdrop-filter:
+    blur(10px);
 
-@media (max-width: 639px) {
-  :deep(.navbar-logout-button .p-button-label) {
-    display: none;
-  }
-
-  :deep(.navbar-logout-button) {
-    width: 44px;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  :deep(.navbar-logout-button .p-button-icon) {
-    margin: 0;
-  }
+  backdrop-filter:
+    blur(10px);
 }
 </style>

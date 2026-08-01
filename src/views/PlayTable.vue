@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -14,6 +15,8 @@ import Message from 'primevue/message';
 import DatePicker from 'primevue/datepicker';
 
 import api from '../services/api';
+
+const { t, locale } = useI18n();
 
 const TWO_DIGIT_RATE_NUMBERS = [
   100,
@@ -337,7 +340,11 @@ const formatDate = (value) => {
     return '-';
   }
 
-  return date.toLocaleString();
+  return date.toLocaleString(
+    locale.value === 'km'
+      ? 'km-KH'
+      : 'en-GB'
+  );
 };
 
 const formatDateOnly = (value) => {
@@ -351,7 +358,11 @@ const formatDateOnly = (value) => {
     return '-';
   }
 
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(
+    locale.value === 'km'
+      ? 'km-KH'
+      : 'en-GB'
+  );
 };
 
 const formatDateForApi = (value) => {
@@ -940,7 +951,9 @@ const buildPrintHtml = (play) => {
       ? `
         <div class="calculation-row deduction-row">
           <div class="calculation-name">
-            លេខត្រូវ2
+            ${escapeHtml(
+              t('invoice.print.correctTwoDigit')
+            )}
           </div>
 
           <div class="calculation-value">
@@ -962,7 +975,9 @@ const buildPrintHtml = (play) => {
       ? `
         <div class="calculation-row deduction-row">
           <div class="calculation-name">
-            លេខត្រូវ3
+            ${escapeHtml(
+              t('invoice.print.correctThreeDigit')
+            )}
           </div>
 
           <div class="calculation-value">
@@ -986,7 +1001,7 @@ const buildPrintHtml = (play) => {
   return `
     <!DOCTYPE html>
 
-    <html lang="km">
+    <html lang="${locale.value === 'km' ? 'km' : 'en'}">
       <head>
         <meta charset="UTF-8" />
 
@@ -1158,27 +1173,39 @@ const buildPrintHtml = (play) => {
             <thead>
               <tr>
                 <th class="number-column">
-                  ល.រ
+                  ${escapeHtml(
+                    t('invoice.print.serial')
+                  )}
                 </th>
 
                 <th class="row-title-column">
-                  លេខក្បាល
+                  ${escapeHtml(
+                    t('invoice.print.rowTitle')
+                  )}
                 </th>
 
                 <th class="value-column">
-                  2លេខ
+                  ${escapeHtml(
+                    t('invoice.print.twoDigit')
+                  )}
                 </th>
 
                 <th class="value-column">
-                  3លេខ
+                  ${escapeHtml(
+                    t('invoice.print.threeDigit')
+                  )}
                 </th>
 
                 <th class="correct-column">
-                  ត្រូវ2
+                  ${escapeHtml(
+                    t('invoice.print.correctTwoDigit')
+                  )}
                 </th>
 
                 <th class="correct-column">
-                  ត្រូវ3
+                  ${escapeHtml(
+                    t('invoice.print.correctThreeDigit')
+                  )}
                 </th>
 
                 <th class="status-column"></th>
@@ -1193,7 +1220,9 @@ const buildPrintHtml = (play) => {
           <div class="calculation-container">
             <div class="calculation-row">
               <div class="calculation-name">
-                2លេខ
+                ${escapeHtml(
+                  t('invoice.print.twoDigit')
+                )}
               </div>
 
               <div class="calculation-value">
@@ -1212,7 +1241,9 @@ const buildPrintHtml = (play) => {
 
             <div class="calculation-row">
               <div class="calculation-name">
-                3លេខ
+                ${escapeHtml(
+                  t('invoice.print.threeDigit')
+                )}
               </div>
 
               <div class="calculation-value">
@@ -1237,7 +1268,9 @@ const buildPrintHtml = (play) => {
 
             <div class="grand-total">
               <span>
-                សរុប:
+                ${escapeHtml(
+                  t('invoice.print.total')
+                )}:
               </span>
 
               <span>
@@ -1258,7 +1291,7 @@ const printLotteryPlay = async (play) => {
 
   if (!play) {
     errorMessage.value =
-      'Invoice data was not found';
+      t('invoice.errors.dataNotFound');
 
     return;
   }
@@ -1275,7 +1308,7 @@ const printLotteryPlay = async (play) => {
 
   if (!printWindow) {
     errorMessage.value =
-      'Print popup was blocked. Please allow popups and try again.';
+      t('invoice.errors.popupBlocked');
 
     return;
   }
@@ -1304,7 +1337,9 @@ const printLotteryPlay = async (play) => {
               sans-serif;
           "
         >
-          Preparing invoice...
+          ${escapeHtml(
+            t('invoice.print.preparing')
+          )}
         </body>
       </html>
     `);
@@ -1378,7 +1413,9 @@ const printLotteryPlay = async (play) => {
             color: #dc2626;
           "
         >
-          Could not prepare this invoice for printing.
+          ${escapeHtml(
+            t('invoice.print.prepareError')
+          )}
         </body>
       </html>
     `);
@@ -1387,7 +1424,7 @@ const printLotteryPlay = async (play) => {
 
     errorMessage.value =
       error.response?.data?.message ||
-      'Could not print invoice';
+      t('invoice.errors.print');
   } finally {
     printingPlayId.value = null;
   }
@@ -1583,7 +1620,7 @@ const fetchLotteryPlays = async () => {
 
     errorMessage.value =
       error.response?.data?.message ||
-      'Could not fetch invoices';
+      t('invoice.errors.fetch');
   } finally {
     loading.value = false;
   }
@@ -1682,7 +1719,7 @@ const addPlayRow = () => {
 const removePlayRow = (index) => {
   if (playRows.value.length === 1) {
     errorMessage.value =
-      'At least one row is required';
+      t('invoice.errors.atLeastOneRow');
 
     return;
   }
@@ -1701,7 +1738,9 @@ const duplicatePlayRow = (index) => {
       localId: makeLocalId(),
 
       rowTitle: row.rowTitle
-        ? `${row.rowTitle} Copy`
+        ? `${row.rowTitle} ${t(
+            'invoice.copySuffix'
+          )}`
         : ''
     }
   );
@@ -1853,7 +1892,7 @@ const openDetailDialog = async (play) => {
 
     errorMessage.value =
       error.response?.data?.message ||
-      'Could not load invoice details';
+      t('invoice.errors.detail');
   } finally {
     detailLoading.value = false;
   }
@@ -1864,23 +1903,23 @@ const validatePlayForm = () => {
     !playForm.value.title ||
     !playForm.value.title.trim()
   ) {
-    return 'Invoice name is required';
+    return t('invoice.errors.titleRequired');
   }
 
   if (!playForm.value.categoryId) {
-    return 'Category is required';
+    return t('invoice.errors.categoryRequired');
   }
 
   if (!playForm.value.productId) {
-    return 'Product is required';
+    return t('invoice.errors.productRequired');
   }
 
   if (!playForm.value.customerId) {
-    return 'Customer is required';
+    return t('invoice.errors.customerRequired');
   }
 
   if (!playForm.value.playDate) {
-    return 'Invoice date is required';
+    return t('invoice.errors.dateRequired');
   }
 
   if (
@@ -1890,7 +1929,7 @@ const validatePlayForm = () => {
       )
     )
   ) {
-    return 'Please select a valid 2D rate';
+    return t('invoice.errors.invalidTwoDigitRate');
   }
 
   if (
@@ -1900,7 +1939,7 @@ const validatePlayForm = () => {
       )
     )
   ) {
-    return 'Please select a valid 3D rate';
+    return t('invoice.errors.invalidThreeDigitRate');
   }
 
   const selectedProduct =
@@ -1909,7 +1948,7 @@ const validatePlayForm = () => {
     );
 
   if (!selectedProduct) {
-    return 'Selected product is invalid';
+    return t('invoice.errors.selectedProductInvalid');
   }
 
   const productCategoryId =
@@ -1929,7 +1968,7 @@ const validatePlayForm = () => {
   }
 
   if (!playRows.value.length) {
-    return 'At least one row is required';
+    return t('invoice.errors.atLeastOneRow');
   }
 
   for (
@@ -1940,14 +1979,18 @@ const validatePlayForm = () => {
     const row =
       playRows.value[index];
 
-    const label =
-      `Row ${index + 1}`;
+    const rowNumber = index + 1;
 
     if (
       !row.rowTitle ||
       !row.rowTitle.trim()
     ) {
-      return `${label}: Row name is required`;
+      return t(
+        'invoice.errors.rowNameRequired',
+        {
+          row: rowNumber
+        }
+      );
     }
 
     if (row.isTwoNumber) {
@@ -1956,7 +1999,12 @@ const validatePlayForm = () => {
         row.twoDigitNumber ===
           undefined
       ) {
-        return `${label}: 2D number is required`;
+        return t(
+          'invoice.errors.twoDigitRequired',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -1967,7 +2015,12 @@ const validatePlayForm = () => {
           row.twoDigitNumber
         ) > 99
       ) {
-        return `${label}: 2D number must be between 0 and 99`;
+        return t(
+          'invoice.errors.twoDigitRange',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -1975,7 +2028,12 @@ const validatePlayForm = () => {
           row.twoDigitAmount || 0
         ) < 0
       ) {
-        return `${label}: 2D amount cannot be negative`;
+        return t(
+          'invoice.errors.twoDigitAmountNegative',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -1983,7 +2041,12 @@ const validatePlayForm = () => {
           row.winTwoNumberType || 0
         ) < 0
       ) {
-        return `${label}: 2D type cannot be negative`;
+        return t(
+          'invoice.errors.twoDigitTypeNegative',
+          {
+            row: rowNumber
+          }
+        );
       }
     }
 
@@ -1994,7 +2057,12 @@ const validatePlayForm = () => {
         row.threeDigitNumber ===
           undefined
       ) {
-        return `${label}: 3D number is required`;
+        return t(
+          'invoice.errors.threeDigitRequired',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -2005,7 +2073,12 @@ const validatePlayForm = () => {
           row.threeDigitNumber
         ) > 999
       ) {
-        return `${label}: 3D number must be between 0 and 999`;
+        return t(
+          'invoice.errors.threeDigitRange',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -2013,7 +2086,12 @@ const validatePlayForm = () => {
           row.threeDigitAmount || 0
         ) < 0
       ) {
-        return `${label}: 3D amount cannot be negative`;
+        return t(
+          'invoice.errors.threeDigitAmountNegative',
+          {
+            row: rowNumber
+          }
+        );
       }
 
       if (
@@ -2021,7 +2099,12 @@ const validatePlayForm = () => {
           row.winThreeNumberType || 0
         ) < 0
       ) {
-        return `${label}: 3D type cannot be negative`;
+        return t(
+          'invoice.errors.threeDigitTypeNegative',
+          {
+            row: rowNumber
+          }
+        );
       }
     }
   }
@@ -2151,7 +2234,7 @@ const saveLotteryPlay = async () => {
       );
 
       successMessage.value =
-        'Invoice updated successfully';
+        t('invoice.messages.updated');
     } else {
       await api.post(
         '/lottery-plays',
@@ -2159,7 +2242,7 @@ const saveLotteryPlay = async () => {
       );
 
       successMessage.value =
-        'Invoice created successfully';
+        t('invoice.messages.created');
     }
 
     dialogVisible.value = false;
@@ -2173,7 +2256,7 @@ const saveLotteryPlay = async () => {
 
     errorMessage.value =
       error.response?.data?.message ||
-      'Could not save invoice';
+      t('invoice.errors.save');
   } finally {
     saving.value = false;
   }
@@ -2215,7 +2298,7 @@ const confirmDeleteLotteryPlay = async () => {
     );
 
     successMessage.value =
-      'Invoice deleted successfully';
+      t('invoice.messages.deleted');
 
     deleteDialogVisible.value = false;
     selectedDeletePlay.value = null;
@@ -2236,7 +2319,7 @@ const confirmDeleteLotteryPlay = async () => {
 
     errorMessage.value =
       error.response?.data?.message ||
-      'Could not delete invoice';
+      t('invoice.errors.delete');
   } finally {
     deleting.value = false;
   }
@@ -2274,12 +2357,12 @@ onMounted(async () => {
             </div>
 
             <h1 class="truncate text-xl font-bold sm:text-2xl">
-              Invoice List
+              {{ t('invoice.title') }}
             </h1>
           </div>
 
           <Button
-            label="Add Invoice"
+            :label="t('invoice.addInvoice')"
             icon="pi pi-plus"
             size="small"
             class="shrink-0"
@@ -2314,14 +2397,14 @@ onMounted(async () => {
           <div class="flex gap-2">
             <InputText
               v-model="search"
-              placeholder="Search invoices..."
+              :placeholder="t('invoice.searchInvoices')"
               class="min-w-0 flex-1"
               @keyup.enter="applyFilter"
             />
 
             <Button
               icon="pi pi-search"
-              aria-label="Search"
+              :aria-label="t('invoice.search')"
               @click="applyFilter"
             />
 
@@ -2329,7 +2412,7 @@ onMounted(async () => {
               icon="pi pi-filter"
               severity="secondary"
               outlined
-              aria-label="Show filters"
+              :aria-label="t('invoice.showFilters')"
               :class="{
                 'border-primary text-primary': hasActiveFilters
               }"
@@ -2346,7 +2429,7 @@ onMounted(async () => {
               :options="categoryOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="All categories"
+              :placeholder="t('invoice.allCategories')"
               class="w-full"
               showClear
               @change="onFilterCategoryChange"
@@ -2357,7 +2440,7 @@ onMounted(async () => {
               :options="filterProductOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="All products"
+              :placeholder="t('invoice.allProducts')"
               class="w-full"
               showClear
               filter
@@ -2365,14 +2448,14 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-xs font-semibold text-gray-600">
-                Invoice date range
+                {{ t('invoice.invoiceDateRange') }}
               </label>
 
               <DatePicker
                 v-model="filterDateRange"
                 selectionMode="range"
                 dateFormat="yy-mm-dd"
-                placeholder="Select date range"
+                :placeholder="t('invoice.selectDateRange')"
                 class="w-full"
                 input-class="w-full"
                 showIcon
@@ -2386,7 +2469,7 @@ onMounted(async () => {
 
             <div class="grid grid-cols-2 gap-2">
               <Button
-                label="Reset"
+                :label="t('invoice.reset')"
                 icon="pi pi-refresh"
                 severity="secondary"
                 outlined
@@ -2394,7 +2477,7 @@ onMounted(async () => {
               />
 
               <Button
-                label="Apply"
+                :label="t('invoice.apply')"
                 icon="pi pi-check"
                 @click="applyFilter"
               />
@@ -2408,7 +2491,7 @@ onMounted(async () => {
         >
           <InputText
             v-model="search"
-            placeholder="Search invoice or row..."
+            :placeholder="t('invoice.searchInvoiceOrRow')"
             class="w-full"
             @keyup.enter="applyFilter"
           />
@@ -2418,7 +2501,7 @@ onMounted(async () => {
             :options="categoryOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Category"
+            :placeholder="t('invoice.fields.category')"
             class="w-full"
             showClear
             @change="onFilterCategoryChange"
@@ -2429,7 +2512,7 @@ onMounted(async () => {
             :options="filterProductOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Product"
+            :placeholder="t('invoice.fields.product')"
             class="w-full"
             showClear
             filter
@@ -2439,7 +2522,7 @@ onMounted(async () => {
             v-model="filterDateRange"
             selectionMode="range"
             dateFormat="yy-mm-dd"
-            placeholder="Invoice date range"
+            :placeholder="t('invoice.invoiceDateRange')"
             class="w-full"
             input-class="w-full"
             showIcon
@@ -2452,7 +2535,7 @@ onMounted(async () => {
 
           <div class="flex gap-2">
             <Button
-              label="Search"
+              :label="t('invoice.search')"
               icon="pi pi-search"
               class="flex-1"
               @click="applyFilter"
@@ -2462,7 +2545,7 @@ onMounted(async () => {
               icon="pi pi-refresh"
               severity="secondary"
               outlined
-              aria-label="Reset filters"
+              :aria-label="t('invoice.resetFilters')"
               @click="clearFilter"
             />
           </div>
@@ -2472,7 +2555,9 @@ onMounted(async () => {
         <section class="md:hidden">
           <div v-if="loading" class="py-12 text-center">
             <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
-            <p class="mt-2 text-sm text-gray-500">Loading invoices...</p>
+            <p class="mt-2 text-sm text-gray-500">
+              {{ t('invoice.loadingInvoices') }}
+            </p>
           </div>
 
           <div v-else class="space-y-3">
@@ -2505,14 +2590,18 @@ onMounted(async () => {
 
               <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div class="min-w-0 rounded-lg bg-gray-50 p-2">
-                  <div class="text-xs text-gray-500">Customer</div>
+                  <div class="text-xs text-gray-500">
+                    {{ t('invoice.fields.customer') }}
+                  </div>
                   <div class="mt-1 truncate font-semibold">
                     {{ getCustomerName(invoice) }}
                   </div>
                 </div>
 
                 <div class="min-w-0 rounded-lg bg-gray-50 p-2">
-                  <div class="text-xs text-gray-500">Product</div>
+                  <div class="text-xs text-gray-500">
+                    {{ t('invoice.fields.product') }}
+                  </div>
                   <div class="mt-1 truncate font-semibold">
                     {{ getProductName(invoice) }}
                   </div>
@@ -2521,7 +2610,7 @@ onMounted(async () => {
 
               <div class="mt-3 grid grid-cols-2 gap-2">
                 <Button
-                  label="View"
+                  :label="t('invoice.view')"
                   icon="pi pi-eye"
                   severity="help"
                   outlined
@@ -2530,7 +2619,7 @@ onMounted(async () => {
                 />
 
                 <Button
-                  label="Print"
+                  :label="t('invoice.printButton')"
                   icon="pi pi-print"
                   severity="secondary"
                   outlined
@@ -2542,7 +2631,7 @@ onMounted(async () => {
                 />
 
                 <Button
-                  label="Edit"
+                  :label="t('invoice.edit')"
                   icon="pi pi-pencil"
                   severity="info"
                   outlined
@@ -2551,7 +2640,7 @@ onMounted(async () => {
                 />
 
                 <Button
-                  label="Delete"
+                  :label="t('invoice.delete')"
                   icon="pi pi-trash"
                   severity="danger"
                   outlined
@@ -2565,7 +2654,7 @@ onMounted(async () => {
               v-if="!lotteryPlays.length"
               class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500"
             >
-              No invoices found.
+              {{ t('invoice.noInvoices') }}
             </div>
 
             <div
@@ -2577,13 +2666,18 @@ onMounted(async () => {
                 severity="secondary"
                 text
                 rounded
-                aria-label="Previous page"
+                :aria-label="t('invoice.previousPage')"
                 :disabled="page <= 1 || loading"
                 @click="goToPreviousPage"
               />
 
               <span class="text-sm font-medium text-gray-600">
-                Page {{ page }} of {{ totalPages }}
+                {{
+                  t('invoice.pageOf', {
+                    page,
+                    total: totalPages
+                  })
+                }}
               </span>
 
               <Button
@@ -2591,7 +2685,7 @@ onMounted(async () => {
                 severity="secondary"
                 text
                 rounded
-                aria-label="Next page"
+                :aria-label="t('invoice.nextPage')"
                 :disabled="page >= totalPages || loading"
                 @click="goToNextPage"
               />
@@ -2615,7 +2709,7 @@ onMounted(async () => {
             tableStyle="min-width: 1080px"
             @page="onPageChange"
           >
-            <Column header="Invoice Name" style="min-width: 210px">
+            <Column :header="t('invoice.columns.invoiceName')" style="min-width: 210px">
               <template #body="{ data }">
                 <div class="font-semibold">{{ data.title || '-' }}</div>
                 <div class="text-xs text-gray-500">
@@ -2624,32 +2718,32 @@ onMounted(async () => {
               </template>
             </Column>
 
-            <Column header="Category" style="min-width: 150px">
+            <Column :header="t('invoice.columns.category')" style="min-width: 150px">
               <template #body="{ data }">
                 {{ getCategoryName(data) }}
               </template>
             </Column>
 
-            <Column header="Product" style="min-width: 150px">
+            <Column :header="t('invoice.columns.product')" style="min-width: 150px">
               <template #body="{ data }">
                 {{ getProductName(data) }}
               </template>
             </Column>
 
-            <Column header="Customer" style="min-width: 180px">
+            <Column :header="t('invoice.columns.customer')" style="min-width: 180px">
               <template #body="{ data }">
                 {{ getCustomerName(data) }}
               </template>
             </Column>
 
-            <Column header="Invoice Date" style="min-width: 130px">
+            <Column :header="t('invoice.columns.invoiceDate')" style="min-width: 130px">
               <template #body="{ data }">
                 {{ formatDateOnly(data.playDate || data.createdAt) }}
               </template>
             </Column>
 
             <Column
-              header="Action"
+              :header="t('invoice.columns.action')"
               frozen
               alignFrozen="right"
               style="min-width: 205px"
@@ -2660,7 +2754,7 @@ onMounted(async () => {
                     icon="pi pi-eye"
                     size="small"
                     severity="help"
-                    title="View"
+                    :title="t('invoice.view')"
                     @click="openDetailDialog(data)"
                   />
 
@@ -2668,7 +2762,7 @@ onMounted(async () => {
                     icon="pi pi-print"
                     size="small"
                     severity="secondary"
-                    title="Print"
+                    :title="t('invoice.printButton')"
                     :loading="
                       printingPlayId === (data.id || data._id)
                     "
@@ -2679,7 +2773,7 @@ onMounted(async () => {
                     icon="pi pi-pencil"
                     size="small"
                     severity="info"
-                    title="Edit"
+                    :title="t('invoice.edit')"
                     @click="openEditDialog(data)"
                   />
 
@@ -2687,7 +2781,7 @@ onMounted(async () => {
                     icon="pi pi-trash"
                     size="small"
                     severity="danger"
-                    title="Delete"
+                    :title="t('invoice.delete')"
                     @click="openDeleteDialog(data)"
                   />
                 </div>
@@ -2696,7 +2790,7 @@ onMounted(async () => {
 
             <template #empty>
               <div class="py-8 text-center text-gray-500">
-                No invoices found.
+                {{ t('invoice.noInvoices') }}
               </div>
             </template>
           </DataTable>
@@ -2708,7 +2802,11 @@ onMounted(async () => {
     <Dialog
       v-model:visible="dialogVisible"
       modal
-      :header="isEditMode ? 'Edit Invoice' : 'Create Invoice'"
+      :header="
+        isEditMode
+          ? t('invoice.dialogs.editTitle')
+          : t('invoice.dialogs.createTitle')
+      "
       :style="{
         width: '96vw',
         maxWidth: '1180px'
@@ -2736,7 +2834,7 @@ onMounted(async () => {
         <!-- Invoice information -->
         <section class="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
           <h2 class="mb-3 text-base font-bold text-gray-900">
-            Invoice Information
+            {{ t('invoice.sections.information') }}
           </h2>
 
           <div
@@ -2744,20 +2842,20 @@ onMounted(async () => {
           >
             <div class="sm:col-span-2 lg:col-span-2">
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                Invoice Name
+                {{ t('invoice.fields.invoiceName') }}
               </label>
 
               <InputText
                 v-model="playForm.title"
                 class="w-full"
-                placeholder="Enter invoice name"
+                :placeholder="t('invoice.placeholders.invoiceName')"
                 autocomplete="off"
               />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                Invoice Date
+                {{ t('invoice.fields.invoiceDate') }}
               </label>
 
               <DatePicker
@@ -2774,7 +2872,7 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                Customer
+                {{ t('invoice.fields.customer') }}
               </label>
 
               <Select
@@ -2782,17 +2880,17 @@ onMounted(async () => {
                 :options="customerOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select customer"
+                :placeholder="t('invoice.placeholders.customer')"
                 class="w-full"
                 showClear
                 filter
-                filterPlaceholder="Search customer"
+                :filterPlaceholder="t('invoice.placeholders.searchCustomer')"
               />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                Category
+                {{ t('invoice.fields.category') }}
               </label>
 
               <Select
@@ -2800,7 +2898,7 @@ onMounted(async () => {
                 :options="categoryOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select category"
+                :placeholder="t('invoice.placeholders.category')"
                 class="w-full"
                 showClear
               />
@@ -2808,7 +2906,7 @@ onMounted(async () => {
 
             <div class="sm:col-span-2 lg:col-span-1">
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                Product
+                {{ t('invoice.fields.product') }}
               </label>
 
               <Select
@@ -2816,18 +2914,18 @@ onMounted(async () => {
                 :options="productOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select product"
+                :placeholder="t('invoice.placeholders.product')"
                 class="w-full"
                 showClear
                 filter
-                filterPlaceholder="Search product"
+                :filterPlaceholder="t('invoice.placeholders.searchProduct')"
                 @change="onProductChange"
               />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                2D Rate
+                {{ t('invoice.fields.twoDigitRate') }}
               </label>
 
               <Select
@@ -2835,14 +2933,14 @@ onMounted(async () => {
                 :options="twoDigitRateOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="2D rate"
+                :placeholder="t('invoice.placeholders.twoDigitRate')"
                 class="w-full"
               />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                3D Rate
+                {{ t('invoice.fields.threeDigitRate') }}
               </label>
 
               <Select
@@ -2850,7 +2948,7 @@ onMounted(async () => {
                 :options="threeDigitRateOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="3D rate"
+                :placeholder="t('invoice.placeholders.threeDigitRate')"
                 class="w-full"
               />
             </div>
@@ -2861,14 +2959,16 @@ onMounted(async () => {
         <section>
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h2 class="text-base font-bold text-gray-900">Invoice Rows</h2>
+              <h2 class="text-base font-bold text-gray-900">
+                {{ t('invoice.sections.rows') }}
+              </h2>
               <p class="text-xs text-gray-500">
-                Add one or more 2D or 3D rows.
+                {{ t('invoice.rowsHint') }}
               </p>
             </div>
 
             <Button
-              label="Add Row"
+              :label="t('invoice.addRow')"
               icon="pi pi-plus"
               size="small"
               class="shrink-0"
@@ -2891,7 +2991,7 @@ onMounted(async () => {
                   </span>
 
                   <span class="font-bold text-gray-900">
-                    Invoice Row
+                    {{ t('invoice.invoiceRow') }}
                   </span>
                 </div>
 
@@ -2902,8 +3002,8 @@ onMounted(async () => {
                     severity="secondary"
                     outlined
                     rounded
-                    aria-label="Duplicate row"
-                    title="Duplicate row"
+                    :aria-label="t('invoice.duplicateRow')"
+                    :title="t('invoice.duplicateRow')"
                     @click="duplicatePlayRow(index)"
                   />
 
@@ -2913,8 +3013,8 @@ onMounted(async () => {
                     severity="danger"
                     outlined
                     rounded
-                    aria-label="Remove row"
-                    title="Remove row"
+                    :aria-label="t('invoice.removeRow')"
+                    :title="t('invoice.removeRow')"
                     @click="removePlayRow(index)"
                   />
                 </div>
@@ -2922,13 +3022,13 @@ onMounted(async () => {
 
               <div class="mb-3">
                 <label class="mb-1 block text-sm font-semibold text-gray-700">
-                  Row Name
+                  {{ t('invoice.fields.rowName') }}
                 </label>
 
                 <InputText
                   v-model="row.rowTitle"
                   class="w-full"
-                  placeholder="Example: 56>70"
+                  :placeholder="t('invoice.placeholders.rowName')"
                   autocomplete="off"
                 />
               </div>
@@ -2946,7 +3046,9 @@ onMounted(async () => {
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">2D</div>
-                      <div class="text-xs text-gray-500">Enable 2D values</div>
+                      <div class="text-xs text-gray-500">
+                        {{ t('invoice.enableTwoDigit') }}
+                      </div>
                     </div>
 
                     <ToggleSwitch v-model="row.isTwoNumber" />
@@ -2955,7 +3057,7 @@ onMounted(async () => {
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        2D Number
+                        {{ t('invoice.fields.twoDigitNumber') }}
                       </label>
 
                       <InputNumber
@@ -2975,14 +3077,14 @@ onMounted(async () => {
 
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        2D Amount
+                        {{ t('invoice.fields.twoDigitAmount') }}
                       </label>
 
                       <InputNumber
                         v-model="row.twoDigitAmount"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="Amount"
+                        :placeholder="t('invoice.placeholders.amount')"
                         :min="0"
                         :disabled="!row.isTwoNumber"
                         :inputProps="{
@@ -2993,14 +3095,14 @@ onMounted(async () => {
 
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        Correct 2D
+                        {{ t('invoice.fields.correctTwoDigit') }}
                       </label>
 
                       <InputNumber
                         v-model="row.winTwoNumberType"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="Type"
+                        :placeholder="t('invoice.placeholders.type')"
                         :min="0"
                         :disabled="!row.isTwoNumber"
                         :useGrouping="false"
@@ -3024,7 +3126,9 @@ onMounted(async () => {
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">3D</div>
-                      <div class="text-xs text-gray-500">Enable 3D values</div>
+                      <div class="text-xs text-gray-500">
+                        {{ t('invoice.enableThreeDigit') }}
+                      </div>
                     </div>
 
                     <ToggleSwitch v-model="row.isThreeNumber" />
@@ -3033,7 +3137,7 @@ onMounted(async () => {
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        3D Number
+                        {{ t('invoice.fields.threeDigitNumber') }}
                       </label>
 
                       <InputNumber
@@ -3053,14 +3157,14 @@ onMounted(async () => {
 
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        3D Amount
+                        {{ t('invoice.fields.threeDigitAmount') }}
                       </label>
 
                       <InputNumber
                         v-model="row.threeDigitAmount"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="Amount"
+                        :placeholder="t('invoice.placeholders.amount')"
                         :min="0"
                         :disabled="!row.isThreeNumber"
                         :inputProps="{
@@ -3071,14 +3175,14 @@ onMounted(async () => {
 
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        Correct 3D
+                        {{ t('invoice.fields.correctThreeDigit') }}
                       </label>
 
                       <InputNumber
                         v-model="row.winThreeNumberType"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="Type"
+                        :placeholder="t('invoice.placeholders.type')"
                         :min="0"
                         :disabled="!row.isThreeNumber"
                         :useGrouping="false"
@@ -3099,8 +3203,12 @@ onMounted(async () => {
           class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center sm:flex sm:items-center sm:justify-between sm:text-left"
         >
           <div>
-            <div class="text-sm font-medium text-gray-500">Grand Total</div>
-            <div class="text-xs text-gray-400">Calculated automatically</div>
+            <div class="text-sm font-medium text-gray-500">
+              {{ t('invoice.fields.grandTotal') }}
+            </div>
+            <div class="text-xs text-gray-400">
+              {{ t('invoice.calculatedAutomatically') }}
+            </div>
           </div>
 
           <div
@@ -3123,7 +3231,7 @@ onMounted(async () => {
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end">
           <Button
-            label="Cancel"
+            :label="t('invoice.cancel')"
             severity="secondary"
             outlined
             :disabled="saving"
@@ -3131,7 +3239,11 @@ onMounted(async () => {
           />
 
           <Button
-            :label="isEditMode ? 'Update Invoice' : 'Create Invoice'"
+            :label="
+              isEditMode
+                ? t('invoice.updateInvoice')
+                : t('invoice.createInvoice')
+            "
             icon="pi pi-save"
             :loading="saving"
             @click="saveLotteryPlay"
@@ -3144,7 +3256,10 @@ onMounted(async () => {
     <Dialog
       v-model:visible="detailDialogVisible"
       modal
-      :header="selectedDetailPlay?.title || 'Invoice Details'"
+      :header="
+        selectedDetailPlay?.title ||
+        t('invoice.dialogs.detailsTitle')
+      "
       :style="{
         width: '96vw',
         maxWidth: '760px'
@@ -3158,7 +3273,7 @@ onMounted(async () => {
     >
       <div class="space-y-4">
         <Message v-if="detailLoading" severity="info">
-          Loading invoice...
+          {{ t('invoice.loadingInvoice') }}
         </Message>
 
         <div
@@ -3166,14 +3281,18 @@ onMounted(async () => {
           class="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-sm"
         >
           <div class="min-w-0">
-            <div class="text-xs text-gray-500">Customer</div>
+            <div class="text-xs text-gray-500">
+              {{ t('invoice.fields.customer') }}
+            </div>
             <div class="mt-1 truncate font-semibold">
               {{ getCustomerName(selectedDetailPlay) }}
             </div>
           </div>
 
           <div class="min-w-0">
-            <div class="text-xs text-gray-500">Date</div>
+            <div class="text-xs text-gray-500">
+              {{ t('invoice.fields.date') }}
+            </div>
             <div class="mt-1 font-semibold">
               {{
                 formatDateOnly(
@@ -3185,14 +3304,18 @@ onMounted(async () => {
           </div>
 
           <div class="min-w-0">
-            <div class="text-xs text-gray-500">Category</div>
+            <div class="text-xs text-gray-500">
+              {{ t('invoice.fields.category') }}
+            </div>
             <div class="mt-1 truncate font-semibold">
               {{ getCategoryName(selectedDetailPlay) }}
             </div>
           </div>
 
           <div class="min-w-0">
-            <div class="text-xs text-gray-500">Product</div>
+            <div class="text-xs text-gray-500">
+              {{ t('invoice.fields.product') }}
+            </div>
             <div class="mt-1 truncate font-semibold">
               {{ getProductName(selectedDetailPlay) }}
             </div>
@@ -3208,7 +3331,7 @@ onMounted(async () => {
           >
             <div class="mb-3 flex items-center justify-between gap-2">
               <span class="text-sm text-gray-500">
-                Row {{ row.sourceIndex }}
+                {{ t('invoice.rowNumber', { number: row.sourceIndex }) }}
               </span>
               <span class="truncate font-semibold">{{ row.rowTitle }}</span>
             </div>
@@ -3237,14 +3360,18 @@ onMounted(async () => {
               </div>
 
               <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">Correct 2D</div>
+                <div class="text-xs text-gray-500">
+                  {{ t('invoice.fields.correctTwoDigit') }}
+                </div>
                 <div class="mt-1 font-semibold">
                   {{ row.twoDigitType || '-' }}
                 </div>
               </div>
 
               <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">Correct 3D</div>
+                <div class="text-xs text-gray-500">
+                  {{ t('invoice.fields.correctThreeDigit') }}
+                </div>
                 <div class="mt-1 font-semibold">
                   {{ row.threeDigitType || '-' }}
                 </div>
@@ -3256,7 +3383,7 @@ onMounted(async () => {
             v-if="!detailDisplayRows.length"
             class="rounded-xl border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500"
           >
-            No rows found.
+            {{ t('invoice.noRows') }}
           </div>
         </div>
 
@@ -3267,12 +3394,24 @@ onMounted(async () => {
           <table class="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr class="text-center font-bold">
-                <th class="border-b border-gray-200 px-3 py-2">No</th>
-                <th class="border-b border-gray-200 px-3 py-2">លេខក្បាល</th>
-                <th class="border-b border-gray-200 px-3 py-2">2លេខ</th>
-                <th class="border-b border-gray-200 px-3 py-2">3លេខ</th>
-                <th class="border-b border-gray-200 px-3 py-2">លេខត្រូវ2</th>
-                <th class="border-b border-gray-200 px-3 py-2">លេខត្រូវ3</th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.columns.number') }}
+                </th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.print.rowTitle') }}
+                </th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.print.twoDigit') }}
+                </th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.print.threeDigit') }}
+                </th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.print.correctTwoDigit') }}
+                </th>
+                <th class="border-b border-gray-200 px-3 py-2">
+                  {{ t('invoice.print.correctThreeDigit') }}
+                </th>
               </tr>
             </thead>
 
@@ -3300,7 +3439,7 @@ onMounted(async () => {
 
               <tr v-if="!detailDisplayRows.length">
                 <td colspan="6" class="px-3 py-6 text-center text-gray-500">
-                  No rows found.
+                  {{ t('invoice.noRows') }}
                 </td>
               </tr>
             </tbody>
@@ -3310,7 +3449,9 @@ onMounted(async () => {
         <section class="rounded-xl border border-gray-200 p-3 sm:p-4">
           <div class="space-y-2 text-sm">
             <div class="flex items-center justify-between gap-3">
-              <span class="font-semibold">2លេខ</span>
+              <span class="font-semibold">
+                {{ t('invoice.print.twoDigit') }}
+              </span>
               <span class="text-right">
                 {{ formatPlainNumber(detailCalculation.twoDigitBaseTotal) }}
                 × {{ formatRate(detailCalculation.twoDigitRate) }} =
@@ -3319,7 +3460,9 @@ onMounted(async () => {
             </div>
 
             <div class="flex items-center justify-between gap-3">
-              <span class="font-semibold">3លេខ</span>
+              <span class="font-semibold">
+                {{ t('invoice.print.threeDigit') }}
+              </span>
               <span class="text-right">
                 {{ formatPlainNumber(detailCalculation.threeDigitBaseTotal) }}
                 × {{ formatRate(detailCalculation.threeDigitRate) }} =
@@ -3331,7 +3474,9 @@ onMounted(async () => {
               v-if="detailCalculation.twoDigitCorrectTotal > 0"
               class="flex items-center justify-between gap-3"
             >
-              <span class="font-semibold">លេខត្រូវ2</span>
+              <span class="font-semibold">
+                {{ t('invoice.print.correctTwoDigit') }}
+              </span>
               <span class="text-right text-red-600">
                 {{ formatPlainNumber(detailCalculation.twoDigitCorrectTotal) }}
                 × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -
@@ -3347,7 +3492,9 @@ onMounted(async () => {
               v-if="detailCalculation.threeDigitCorrectTotal > 0"
               class="flex items-center justify-between gap-3"
             >
-              <span class="font-semibold">លេខត្រូវ3</span>
+              <span class="font-semibold">
+                {{ t('invoice.print.correctThreeDigit') }}
+              </span>
               <span class="text-right text-red-600">
                 {{
                   formatPlainNumber(
@@ -3373,7 +3520,7 @@ onMounted(async () => {
                 )
               "
             >
-              <span>សរុប</span>
+              <span>{{ t('invoice.print.total') }}</span>
               <span>
                 {{
                   formatSignedPlayResult(
@@ -3389,14 +3536,14 @@ onMounted(async () => {
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
           <Button
-            label="Close"
+            :label="t('invoice.close')"
             severity="secondary"
             outlined
             @click="detailDialogVisible = false"
           />
 
           <Button
-            label="Print"
+            :label="t('invoice.printButton')"
             icon="pi pi-print"
             :loading="
               printingPlayId ===
@@ -3412,7 +3559,7 @@ onMounted(async () => {
     <Dialog
       v-model:visible="deleteDialogVisible"
       modal
-      header="Delete Invoice"
+      :header="t('invoice.dialogs.deleteTitle')"
       :style="{
         width: '94vw',
         maxWidth: '420px'
@@ -3421,7 +3568,9 @@ onMounted(async () => {
       :draggable="false"
     >
       <div>
-        <div class="font-semibold text-gray-900">Delete this invoice?</div>
+        <div class="font-semibold text-gray-900">
+          {{ t('invoice.deleteQuestion') }}
+        </div>
         <div class="mt-2 text-sm text-gray-500">
           {{ selectedDeletePlay?.title }}
         </div>
@@ -3430,7 +3579,7 @@ onMounted(async () => {
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
           <Button
-            label="Cancel"
+            :label="t('invoice.cancel')"
             severity="secondary"
             outlined
             :disabled="deleting"
@@ -3438,7 +3587,7 @@ onMounted(async () => {
           />
 
           <Button
-            label="Delete"
+            :label="t('invoice.delete')"
             icon="pi pi-trash"
             severity="danger"
             :loading="deleting"

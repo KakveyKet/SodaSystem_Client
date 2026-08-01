@@ -1,23 +1,23 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useToast } from 'primevue/usetoast';
+import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Column from 'primevue/column';
-import DataTable from 'primevue/datatable';
-import Dialog from 'primevue/dialog';
-import InputNumber from 'primevue/inputnumber';
-import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
-import Select from 'primevue/select';
-import Tag from 'primevue/tag';
-import Textarea from 'primevue/textarea';
-import ToggleSwitch from 'primevue/toggleswitch';
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Column from "primevue/column";
+import DataTable from "primevue/datatable";
+import Dialog from "primevue/dialog";
+import InputNumber from "primevue/inputnumber";
+import InputText from "primevue/inputtext";
+import Message from "primevue/message";
+import Select from "primevue/select";
+import Tag from "primevue/tag";
+import Textarea from "primevue/textarea";
+import ToggleSwitch from "primevue/toggleswitch";
 
-import api from '../services/api';
+import api from "../services/api";
 
-const toast = useToast();
+const { t } = useI18n();
 
 const products = ref([]);
 const categories = ref([]);
@@ -26,15 +26,16 @@ const loading = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
 
-const dialogVisible = ref(false);
+const formDialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
-
 const isEditMode = ref(false);
-const selectedDeleteProduct = ref(null);
 
-const errorMessage = ref('');
+const selectedProduct = ref(null);
 
-const search = ref('');
+const errorMessage = ref("");
+const successMessage = ref("");
+
+const search = ref("");
 const filterCategoryId = ref(null);
 const filterStatus = ref(null);
 
@@ -42,100 +43,169 @@ const page = ref(1);
 const limit = ref(10);
 const totalRecords = ref(0);
 
-const statusOptions = [
+const statusOptions = computed(() => [
   {
-    label: 'All',
-    value: null
+    label: t("product.status.active"),
+    value: true,
   },
   {
-    label: 'Active',
-    value: true
+    label: t("product.status.inactive"),
+    value: false,
   },
-  {
-    label: 'Inactive',
-    value: false
-  }
-];
+]);
 
 const form = ref({
   id: null,
   categoryId: null,
-  name: '',
+  name: "",
   winMultiplier: 1,
-  description: '',
-  status: true
+  description: "",
+  status: true,
+});
+
+const totalPages = computed(() => {
+  return Math.max(
+    Math.ceil(
+      Number(totalRecords.value || 0) /
+        Number(limit.value || 10)
+    ),
+    1
+  );
 });
 
 const categoryOptions = computed(() => {
   return categories.value.map((category) => ({
     label: category.name,
-    value: category.id || category._id
+    value: category.id || category._id,
   }));
 });
+
+const extractArrayData = (response, keys = []) => {
+  if (Array.isArray(response.data?.data)) {
+    return response.data.data;
+  }
+
+  for (const key of keys) {
+    if (Array.isArray(response.data?.data?.[key])) {
+      return response.data.data[key];
+    }
+
+    if (Array.isArray(response.data?.[key])) {
+      return response.data[key];
+    }
+  }
+
+  return [];
+};
+
+const extractTotalRecords = (response, fallback = 0) => {
+  return (
+    response.data?.pagination?.total ??
+    response.data?.data?.pagination?.total ??
+    response.data?.data?.total ??
+    response.data?.total ??
+    fallback
+  );
+};
 
 const getId = (value) => {
   if (!value) {
     return null;
   }
 
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     return value.id || value._id || null;
   }
 
   return value;
 };
 
-const getCategoryName = (product) => {
-  if (product.category && typeof product.category === 'object') {
-    return product.category.name || '-';
-  }
-
-  if (product.categoryId && typeof product.categoryId === 'object') {
-    return product.categoryId.name || '-';
-  }
-
-  return '-';
+const getProductId = (product) => {
+  return product?.id || product?._id || null;
 };
 
-const formatDate = (value) => {
-  if (!value) {
-    return '-';
+const getCategoryName = (product) => {
+  if (
+    product?.category &&
+    typeof product.category === "object"
+  ) {
+    return product.category.name || "-";
   }
 
-  return new Date(value).toLocaleString();
+  if (
+    product?.categoryId &&
+    typeof product.categoryId === "object"
+  ) {
+    return product.categoryId.name || "-";
+  }
+
+  const categoryId = getId(
+    product?.categoryId || product?.category
+  );
+
+  const category = categories.value.find((item) => {
+    return (
+      String(item.id || item._id) === String(categoryId)
+    );
+  });
+
+  return category?.name || "-";
+};
+
+const getStatusLabel = (status) => {
+  return status
+    ? t("product.status.active")
+    : t("product.status.inactive");
+};
+
+const getStatusSeverity = (status) => {
+  return status ? "success" : "danger";
+};
+
+const getApiErrorMessage = (error, fallbackKey) => {
+  return error.response?.data?.message || t(fallbackKey);
+};
+
+const clearMessages = () => {
+  errorMessage.value = "";
+  successMessage.value = "";
 };
 
 const resetForm = () => {
   form.value = {
     id: null,
     categoryId: null,
-    name: '',
+    name: "",
     winMultiplier: 1,
-    description: '',
-    status: true
+    description: "",
+    status: true,
   };
 };
 
 const fetchCategories = async () => {
-  const response = await api.get('/categories', {
+  const response = await api.get("/categories", {
     params: {
       page: 1,
-      limit: 100,
-      status: true
-    }
+      limit: 500,
+      status: true,
+    },
   });
 
-  categories.value = response.data.data || [];
+  categories.value = extractArrayData(response, [
+    "categories",
+    "items",
+    "results",
+  ]);
 };
 
 const fetchProducts = async () => {
   try {
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
 
     const params = {
       page: page.value,
-      limit: limit.value
+      limit: limit.value,
     };
 
     if (search.value.trim()) {
@@ -150,25 +220,31 @@ const fetchProducts = async () => {
       params.status = filterStatus.value;
     }
 
-    const response = await api.get('/products', {
-      params
+    const response = await api.get("/products", {
+      params,
     });
 
-    products.value = response.data.data || [];
-    totalRecords.value = response.data.pagination?.total || 0;
+    products.value = extractArrayData(response, [
+      "products",
+      "items",
+      "results",
+    ]);
+
+    totalRecords.value = extractTotalRecords(
+      response,
+      products.value.length
+    );
   } catch (error) {
-    console.error('Fetch products error:', error);
-    errorMessage.value =
-      error.response?.data?.message || 'Could not fetch products';
+    console.error("Fetch products error:", error);
+
+    products.value = [];
+    errorMessage.value = getApiErrorMessage(
+      error,
+      "product.errors.fetch"
+    );
   } finally {
     loading.value = false;
   }
-};
-
-const onPageChange = (event) => {
-  page.value = event.page + 1;
-  limit.value = event.rows;
-  fetchProducts();
 };
 
 const applyFilter = () => {
@@ -177,54 +253,100 @@ const applyFilter = () => {
 };
 
 const clearFilter = () => {
-  search.value = '';
+  search.value = "";
   filterCategoryId.value = null;
   filterStatus.value = null;
   page.value = 1;
+
+  fetchProducts();
+};
+
+const onPageChange = (event) => {
+  page.value = event.page + 1;
+  limit.value = event.rows;
+
+  fetchProducts();
+};
+
+const goToPreviousPage = () => {
+  if (loading.value || page.value <= 1) {
+    return;
+  }
+
+  page.value -= 1;
+  fetchProducts();
+};
+
+const goToNextPage = () => {
+  if (
+    loading.value ||
+    page.value >= totalPages.value
+  ) {
+    return;
+  }
+
+  page.value += 1;
   fetchProducts();
 };
 
 const openCreateDialog = () => {
-  errorMessage.value = '';
+  clearMessages();
   resetForm();
+
   isEditMode.value = false;
-  dialogVisible.value = true;
+  formDialogVisible.value = true;
 };
 
 const openEditDialog = (product) => {
-  errorMessage.value = '';
+  clearMessages();
 
   form.value = {
-    id: product.id || product._id,
-    categoryId: getId(product.category || product.categoryId),
-    name: product.name || '',
-    winMultiplier: product.winMultiplier || 1,
-    description: product.description || '',
-    status: product.status !== false
+    id: getProductId(product),
+    categoryId: getId(
+      product.categoryId || product.category
+    ),
+    name: product.name || "",
+    winMultiplier: Number(
+      product.winMultiplier ?? 1
+    ),
+    description: product.description || "",
+    status: product.status !== false,
   };
 
   isEditMode.value = true;
-  dialogVisible.value = true;
+  formDialogVisible.value = true;
+};
+
+const closeFormDialog = () => {
+  if (saving.value) {
+    return;
+  }
+
+  formDialogVisible.value = false;
+  resetForm();
 };
 
 const validateForm = () => {
   if (!form.value.categoryId) {
-    return 'Category is required';
+    return t("product.errors.categoryRequired");
   }
 
-  if (!form.value.name || !form.value.name.trim()) {
-    return 'Product name is required';
+  if (!form.value.name.trim()) {
+    return t("product.errors.nameRequired");
   }
 
-  if (form.value.winMultiplier === null || form.value.winMultiplier === undefined) {
-    return 'Win multiplier is required';
+  if (
+    form.value.winMultiplier === null ||
+    form.value.winMultiplier === undefined
+  ) {
+    return t("product.errors.multiplierRequired");
   }
 
   if (Number(form.value.winMultiplier) < 0) {
-    return 'Win multiplier cannot be negative';
+    return t("product.errors.multiplierNegative");
   }
 
-  return '';
+  return "";
 };
 
 const buildPayload = () => {
@@ -233,13 +355,14 @@ const buildPayload = () => {
     name: form.value.name.trim(),
     winMultiplier: Number(form.value.winMultiplier),
     description: form.value.description.trim(),
-    status: Boolean(form.value.status)
+    status: Boolean(form.value.status),
   };
 };
 
 const saveProduct = async () => {
   try {
-    errorMessage.value = '';
+    errorMessage.value = "";
+    successMessage.value = "";
 
     const validationError = validateForm();
 
@@ -253,47 +376,42 @@ const saveProduct = async () => {
     const payload = buildPayload();
 
     if (isEditMode.value) {
-      await api.put(`/products/${form.value.id}`, payload);
+      await api.put(
+        `/products/${form.value.id}`,
+        payload
+      );
 
-      toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Product updated successfully',
-        life: 2500
-      });
+      successMessage.value = t(
+        "product.messages.updated"
+      );
     } else {
-      await api.post('/products', payload);
+      await api.post("/products", payload);
 
-      toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Product created successfully',
-        life: 2500
-      });
+      successMessage.value = t(
+        "product.messages.created"
+      );
     }
 
-    dialogVisible.value = false;
+    formDialogVisible.value = false;
+    resetForm();
+
     await fetchProducts();
   } catch (error) {
-    console.error('Save product error:', error);
+    console.error("Save product error:", error);
 
-    errorMessage.value =
-      error.response?.data?.message || 'Could not save product';
-
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: errorMessage.value,
-      life: 3000
-    });
+    errorMessage.value = getApiErrorMessage(
+      error,
+      "product.errors.save"
+    );
   } finally {
     saving.value = false;
   }
 };
 
 const openDeleteDialog = (product) => {
-  errorMessage.value = '';
-  selectedDeleteProduct.value = product;
+  clearMessages();
+
+  selectedProduct.value = product;
   deleteDialogVisible.value = true;
 };
 
@@ -303,45 +421,56 @@ const closeDeleteDialog = () => {
   }
 
   deleteDialogVisible.value = false;
-  selectedDeleteProduct.value = null;
+  selectedProduct.value = null;
 };
 
 const confirmDeleteProduct = async () => {
-  if (!selectedDeleteProduct.value) {
+  if (!selectedProduct.value) {
     return;
   }
 
   try {
     deleting.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
+    successMessage.value = "";
 
-    await api.delete(
-      `/products/${selectedDeleteProduct.value.id || selectedDeleteProduct.value._id}`
+    const productId = getProductId(
+      selectedProduct.value
     );
 
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Product deleted successfully',
-      life: 2500
-    });
+    if (!productId) {
+      errorMessage.value = t(
+        "product.errors.idMissing"
+      );
+      return;
+    }
+
+    await api.delete(`/products/${productId}`);
+
+    successMessage.value = t(
+      "product.messages.deleted"
+    );
 
     deleteDialogVisible.value = false;
-    selectedDeleteProduct.value = null;
+    selectedProduct.value = null;
+
+    if (
+      products.value.length === 1 &&
+      page.value > 1
+    ) {
+      page.value -= 1;
+    }
 
     await fetchProducts();
   } catch (error) {
-    console.error('Delete product error:', error);
+    console.error("Delete product error:", error);
 
-    errorMessage.value =
-      error.response?.data?.message || 'Could not delete product';
+    errorMessage.value = getApiErrorMessage(
+      error,
+      "product.errors.delete"
+    );
 
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: errorMessage.value,
-      life: 3000
-    });
+    deleteDialogVisible.value = false;
   } finally {
     deleting.value = false;
   }
@@ -352,27 +481,37 @@ onMounted(async () => {
     await fetchCategories();
     await fetchProducts();
   } catch (error) {
-    console.error('Initial load error:', error);
-    errorMessage.value =
-      error.response?.data?.message || 'Could not load product page';
+    console.error("Product page load error:", error);
+
+    errorMessage.value = getApiErrorMessage(
+      error,
+      "product.errors.load"
+    );
   }
 });
 </script>
 
 <template>
-  <div class="p-3 sm:p-4 lg:p-6">
+  <div class="mx-auto w-full max-w-7xl p-2 sm:p-4 lg:p-6">
     <Card>
       <template #title>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-3">
-            <i class="pi pi-box text-xl"></i>
-            <span>Product List</span>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600"
+            >
+              <i class="pi pi-box"></i>
+            </div>
+
+            <h1 class="truncate text-xl font-bold sm:text-2xl">
+              {{ t("product.title") }}
+            </h1>
           </div>
 
           <Button
-            label="Add Product"
+            :label="t('product.add')"
             icon="pi pi-plus"
-            class="w-full sm:w-auto"
+            size="small"
             @click="openCreateDialog"
           />
         </div>
@@ -382,16 +521,30 @@ onMounted(async () => {
         <Message
           v-if="errorMessage"
           severity="error"
-          class="mb-4"
+          class="mb-3"
+          closable
+          @close="errorMessage = ''"
         >
           {{ errorMessage }}
         </Message>
 
-        <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Message
+          v-if="successMessage"
+          severity="success"
+          class="mb-3"
+          closable
+          @close="successMessage = ''"
+        >
+          {{ successMessage }}
+        </Message>
+
+        <div
+          class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_200px_170px_auto]"
+        >
           <InputText
             v-model="search"
-            placeholder="Search product..."
             class="w-full"
+            :placeholder="t('product.searchPlaceholder')"
             @keyup.enter="applyFilter"
           />
 
@@ -400,9 +553,10 @@ onMounted(async () => {
             :options="categoryOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Category"
+            :placeholder="t('product.allCategories')"
             class="w-full"
             showClear
+            filter
           />
 
           <Select
@@ -410,112 +564,258 @@ onMounted(async () => {
             :options="statusOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Status"
+            :placeholder="t('product.allStatuses')"
             class="w-full"
+            showClear
           />
 
-          <div class="flex gap-2">
+          <div class="grid grid-cols-2 gap-2 sm:flex">
             <Button
-              label="Search"
+              :label="t('product.search')"
               icon="pi pi-search"
-              class="w-full"
               @click="applyFilter"
             />
 
             <Button
-              icon="pi pi-times"
+              icon="pi pi-refresh"
               severity="secondary"
+              outlined
+              :aria-label="t('product.reset')"
+              :title="t('product.reset')"
               @click="clearFilter"
             />
           </div>
         </div>
 
-        <DataTable
-          :value="products"
-          :loading="loading"
-          lazy
-          paginator
-          dataKey="id"
-          :rows="limit"
-          :totalRecords="totalRecords"
-          :rowsPerPageOptions="[5, 10, 20, 50]"
-          tableStyle="min-width: 760px"
-          class="rounded-lg shadow-sm"
-          @page="onPageChange"
-        >
-          <Column
-            field="name"
-            header="Product Name"
-            style="min-width: 180px"
-          />
-
-          <Column
-            header="Category"
-            style="min-width: 160px"
+        <!-- Smartphone cards -->
+        <div class="space-y-3 md:hidden">
+          <div
+            v-if="loading"
+            class="py-10 text-center"
           >
-            <template #body="{ data }">
-              {{ getCategoryName(data) }}
-            </template>
-          </Column>
+            <i
+              class="pi pi-spin pi-spinner text-2xl text-primary"
+            ></i>
+          </div>
 
-          <Column
-            field="winMultiplier"
-            header="Win Multiplier"
-            style="min-width: 140px"
-          />
+          <template v-else>
+            <article
+              v-for="product in products"
+              :key="getProductId(product)"
+              class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 class="truncate text-lg font-bold">
+                    {{ product.name || "-" }}
+                  </h2>
 
-          <Column
-            header="Status"
-            style="min-width: 120px"
-          >
-            <template #body="{ data }">
-              <Tag
-                :value="data.status ? 'Active' : 'Inactive'"
-                :severity="data.status ? 'success' : 'danger'"
-              />
-            </template>
-          </Column>
+                  <div class="mt-1 text-sm text-gray-500">
+                    {{ getCategoryName(product) }}
+                  </div>
+                </div>
 
-          <Column
-            header="Created At"
-            style="min-width: 180px"
-          >
-            <template #body="{ data }">
-              {{ formatDate(data.createdAt) }}
-            </template>
-          </Column>
-
-          <Column
-            header="Action"
-            style="min-width: 140px"
-          >
-            <template #body="{ data }">
-              <div class="flex gap-2">
-                <Button
-                  icon="pi pi-pencil"
-                  size="small"
-                  severity="info"
-                  @click="openEditDialog(data)"
-                />
-
-                <Button
-                  icon="pi pi-trash"
-                  size="small"
-                  severity="danger"
-                  @click="openDeleteDialog(data)"
+                <Tag
+                  :value="getStatusLabel(product.status)"
+                  :severity="getStatusSeverity(product.status)"
                 />
               </div>
+
+              <div class="mt-3 rounded-lg bg-gray-50 p-3">
+                <div class="text-xs text-gray-500">
+                  {{ t("product.fields.multiplier") }}
+                </div>
+
+                <div class="mt-1 text-lg font-bold text-orange-600">
+                  {{ product.winMultiplier ?? 0 }}
+                </div>
+              </div>
+
+              <p
+                v-if="product.description"
+                class="mt-3 line-clamp-2 text-sm text-gray-500"
+              >
+                {{ product.description }}
+              </p>
+
+              <div class="mt-4 grid grid-cols-2 gap-2">
+                <Button
+                  :label="t('product.edit')"
+                  icon="pi pi-pencil"
+                  severity="info"
+                  outlined
+                  @click="openEditDialog(product)"
+                />
+
+                <Button
+                  :label="t('product.delete')"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  outlined
+                  @click="openDeleteDialog(product)"
+                />
+              </div>
+            </article>
+
+            <div
+              v-if="!products.length"
+              class="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-500"
+            >
+              {{ t("product.noProducts") }}
+            </div>
+          </template>
+
+          <div
+            v-if="totalRecords > 0"
+            class="flex items-center justify-between rounded-xl border border-gray-200 p-2"
+          >
+            <Button
+              icon="pi pi-chevron-left"
+              severity="secondary"
+              text
+              rounded
+              :disabled="page <= 1 || loading"
+              @click="goToPreviousPage"
+            />
+
+            <span class="text-sm font-medium">
+              {{
+                t("product.pageOf", {
+                  page,
+                  total: totalPages,
+                })
+              }}
+            </span>
+
+            <Button
+              icon="pi pi-chevron-right"
+              severity="secondary"
+              text
+              rounded
+              :disabled="page >= totalPages || loading"
+              @click="goToNextPage"
+            />
+          </div>
+        </div>
+
+        <!-- Desktop table -->
+        <div class="hidden md:block">
+          <DataTable
+            :value="products"
+            :loading="loading"
+            lazy
+            paginator
+            scrollable
+            dataKey="id"
+            :rows="limit"
+            :first="(page - 1) * limit"
+            :totalRecords="totalRecords"
+            :rowsPerPageOptions="[5, 10, 20, 50]"
+            tableStyle="min-width: 900px"
+            @page="onPageChange"
+          >
+            <Column
+              field="name"
+              :header="t('product.columns.product')"
+              style="min-width: 180px"
+            >
+              <template #body="{ data }">
+                {{ data.name || "-" }}
+              </template>
+            </Column>
+
+            <Column
+              :header="t('product.columns.category')"
+              style="min-width: 160px"
+            >
+              <template #body="{ data }">
+                {{ getCategoryName(data) }}
+              </template>
+            </Column>
+
+            <Column
+              field="winMultiplier"
+              :header="t('product.columns.multiplier')"
+              style="min-width: 120px"
+            />
+
+            <Column
+              field="description"
+              :header="t('product.columns.description')"
+              style="min-width: 220px"
+            >
+              <template #body="{ data }">
+                {{ data.description || "-" }}
+              </template>
+            </Column>
+
+            <Column
+              :header="t('product.columns.status')"
+              style="min-width: 110px"
+            >
+              <template #body="{ data }">
+                <Tag
+                  :value="getStatusLabel(data.status)"
+                  :severity="getStatusSeverity(data.status)"
+                />
+              </template>
+            </Column>
+
+            <Column
+              :header="t('product.columns.action')"
+              frozen
+              alignFrozen="right"
+              style="min-width: 120px"
+            >
+              <template #body="{ data }">
+                <div class="flex gap-2">
+                  <Button
+                    icon="pi pi-pencil"
+                    size="small"
+                    severity="info"
+                    :aria-label="t('product.edit')"
+                    :title="t('product.edit')"
+                    @click="openEditDialog(data)"
+                  />
+
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    :aria-label="t('product.delete')"
+                    :title="t('product.delete')"
+                    @click="openDeleteDialog(data)"
+                  />
+                </div>
+              </template>
+            </Column>
+
+            <template #empty>
+              <div class="py-8 text-center text-gray-500">
+                {{ t("product.noProducts") }}
+              </div>
             </template>
-          </Column>
-        </DataTable>
+          </DataTable>
+        </div>
       </template>
     </Card>
 
+    <!-- Add/Edit product -->
     <Dialog
-      v-model:visible="dialogVisible"
+      v-model:visible="formDialogVisible"
       modal
-      :header="isEditMode ? 'Edit Product' : 'Create Product'"
-      :style="{ width: '95vw', maxWidth: '600px' }"
+      :header="
+        isEditMode
+          ? t('product.dialogs.editTitle')
+          : t('product.dialogs.addTitle')
+      "
+      :style="{
+        width: '95vw',
+        maxWidth: '620px',
+      }"
+      :closable="!saving"
+      :draggable="false"
+      class="product-form-dialog"
     >
       <div class="space-y-4">
         <Message
@@ -527,7 +827,7 @@ onMounted(async () => {
 
         <div>
           <label class="mb-1 block text-sm font-medium">
-            Category
+            {{ t("product.fields.category") }}
           </label>
 
           <Select
@@ -535,27 +835,28 @@ onMounted(async () => {
             :options="categoryOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Select category"
+            :placeholder="t('product.placeholders.category')"
             class="w-full"
             showClear
+            filter
           />
         </div>
 
         <div>
           <label class="mb-1 block text-sm font-medium">
-            Product Name
+            {{ t("product.fields.name") }}
           </label>
 
           <InputText
             v-model="form.name"
             class="w-full"
-            placeholder="Product name"
+            :placeholder="t('product.placeholders.name')"
           />
         </div>
 
         <div>
           <label class="mb-1 block text-sm font-medium">
-            Win Multiplier
+            {{ t("product.fields.multiplier") }}
           </label>
 
           <InputNumber
@@ -563,97 +864,107 @@ onMounted(async () => {
             class="w-full"
             input-class="w-full"
             :min="0"
-            :minFractionDigits="0"
             :maxFractionDigits="2"
           />
         </div>
 
         <div>
           <label class="mb-1 block text-sm font-medium">
-            Description
+            {{ t("product.fields.description") }}
           </label>
 
           <Textarea
             v-model="form.description"
-            rows="4"
             class="w-full"
-            placeholder="Product description"
+            rows="3"
+            :placeholder="t('product.placeholders.description')"
+            autoResize
           />
         </div>
 
-        <div>
-          <label class="mb-1 block text-sm font-medium">
-            Status
-          </label>
+        <div
+          class="flex items-center justify-between rounded-xl border border-gray-200 p-3"
+        >
+          <div>
+            <div class="font-medium">
+              {{ t("product.fields.status") }}
+            </div>
 
-          <div class="flex items-center gap-3">
-            <ToggleSwitch v-model="form.status" />
-
-            <span>
-              {{ form.status ? 'Active' : 'Inactive' }}
-            </span>
+            <div class="mt-1 text-xs text-gray-500">
+              {{ getStatusLabel(form.status) }}
+            </div>
           </div>
+
+          <ToggleSwitch v-model="form.status" />
         </div>
       </div>
 
       <template #footer>
-        <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div
+          class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end"
+        >
           <Button
-            label="Cancel"
+            :label="t('product.cancel')"
             severity="secondary"
-            class="w-full sm:w-auto"
-            @click="dialogVisible = false"
+            outlined
+            :disabled="saving"
+            @click="closeFormDialog"
           />
 
           <Button
-            :label="isEditMode ? 'Update Product' : 'Create Product'"
+            :label="
+              isEditMode
+                ? t('product.update')
+                : t('product.create')
+            "
             icon="pi pi-save"
             :loading="saving"
-            class="w-full sm:w-auto"
             @click="saveProduct"
           />
         </div>
       </template>
     </Dialog>
 
+    <!-- Delete confirmation -->
     <Dialog
       v-model:visible="deleteDialogVisible"
       modal
-      header="Delete Product"
-      :style="{ width: '95vw', maxWidth: '420px' }"
+      :header="t('product.dialogs.deleteTitle')"
+      :style="{
+        width: '94vw',
+        maxWidth: '420px',
+      }"
       :closable="!deleting"
+      :draggable="false"
     >
-      <div class="flex items-start gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600">
-          <i class="pi pi-trash"></i>
-        </div>
+      <div>
+        <p>
+          {{
+            t("product.deleteQuestion", {
+              name: selectedProduct?.name || "-",
+            })
+          }}
+        </p>
 
-        <div>
-          <div class="font-semibold text-gray-900">
-            Delete this product?
-          </div>
-
-          <div class="mt-1 text-sm text-gray-500">
-            {{ selectedDeleteProduct?.name }}
-          </div>
-        </div>
+        <p class="mt-2 text-sm text-gray-500">
+          {{ t("product.deleteWarning") }}
+        </p>
       </div>
 
       <template #footer>
-        <div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div class="grid w-full grid-cols-2 gap-2">
           <Button
-            label="Cancel"
+            :label="t('product.cancel')"
             severity="secondary"
-            class="w-full sm:w-auto"
+            outlined
             :disabled="deleting"
             @click="closeDeleteDialog"
           />
 
           <Button
-            label="Delete"
+            :label="t('product.delete')"
             icon="pi pi-trash"
             severity="danger"
-            class="w-full sm:w-auto"
             :loading="deleting"
             @click="confirmDeleteProduct"
           />
@@ -662,3 +973,43 @@ onMounted(async () => {
     </Dialog>
   </div>
 </template>
+
+<style scoped>
+:deep(.p-card-body) {
+  padding: 0.875rem;
+}
+
+:deep(.p-inputtext),
+:deep(.p-select),
+:deep(.p-inputnumber),
+:deep(.p-inputnumber-input),
+:deep(.p-textarea),
+:deep(.p-button) {
+  min-height: 44px;
+}
+
+:deep(.p-inputnumber) {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  :deep(.p-card-body) {
+    padding: 1.5rem;
+  }
+}
+</style>
+
+<style>
+@media (max-width: 639px) {
+  .product-form-dialog {
+    width: 100vw !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .product-form-dialog .p-dialog-content {
+    overflow-y: auto;
+  }
+}
+</style>
