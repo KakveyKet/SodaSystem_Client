@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Select from 'primevue/select';
+import MultiSelect from 'primevue/multiselect';
 import Message from 'primevue/message';
 import DatePicker from 'primevue/datepicker';
 
@@ -18,32 +19,16 @@ import api from '../services/api';
 
 const { t, locale } = useI18n();
 
-const TWO_DIGIT_RATE_NUMBERS = [
-  100,
-  101,
-  102,
-  103,
-  104,
-  105,
-  106,
-  107,
-  108,
-  109
-];
-
-const THREE_DIGIT_RATE_NUMBERS = [
-  65,
-  70,
-  75,
-  80,
-  85,
-  90,
-  95,
-  100
-];
+const TWO_DIGIT_RATE = 100;
+const THREE_DIGIT_RATE = 65;
 
 const TWO_DIGIT_WIN_MULTIPLIER = 100;
 const THREE_DIGIT_WIN_MULTIPLIER = 600;
+
+const PRODUCT_KIND = Object.freeze({
+  TWO_DIGIT: '2d',
+  THREE_DIGIT: '3d'
+});
 
 const getTodayDate = () => {
   const now = new Date();
@@ -106,12 +91,15 @@ const filterDateRange = ref(
 const playForm = ref({
   id: null,
   title: '',
-  categoryId: null,
-  productId: null,
+
+  categoryIds: [],
+  productIds: [],
+
   customerId: null,
   playDate: new Date(),
-  twoDigitRate: 100,
-  threeDigitRate: 100
+
+  twoDigitRate: TWO_DIGIT_RATE,
+  threeDigitRate: THREE_DIGIT_RATE
 });
 
 const playRows = ref([]);
@@ -216,6 +204,80 @@ const getId = (value) => {
   return value;
 };
 
+const normalizeSelectedIds = (
+  values,
+  legacyValue = null
+) => {
+  const source =
+    Array.isArray(values) &&
+    values.length > 0
+      ? values
+      : legacyValue
+        ? [legacyValue]
+        : [];
+
+  return Array.from(
+    new Set(
+      source
+        .map((value) => {
+          return getId(value);
+        })
+        .filter(Boolean)
+        .map(String)
+    )
+  );
+};
+
+const normalizeProductText = (value) => {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(
+      /[\s_\-–—()]/g,
+      ''
+    );
+};
+
+const getProductKind = (product) => {
+  if (!product) {
+    return null;
+  }
+
+  const values = [
+    product.playType,
+    product.numberType,
+    product.productType,
+    product.code,
+    product.name
+  ];
+
+  for (const value of values) {
+    const normalized =
+      normalizeProductText(value);
+
+    if (
+      normalized === '2' ||
+      normalized === '2d' ||
+      normalized.includes('2លេខ') ||
+      normalized.includes('លេខ2') ||
+      normalized.includes('twodigit')
+    ) {
+      return PRODUCT_KIND.TWO_DIGIT;
+    }
+
+    if (
+      normalized === '3' ||
+      normalized === '3d' ||
+      normalized.includes('3លេខ') ||
+      normalized.includes('លេខ3') ||
+      normalized.includes('threedigit')
+    ) {
+      return PRODUCT_KIND.THREE_DIGIT;
+    }
+  }
+
+  return null;
+};
+
 const getProductCategoryId = (product) => {
   if (!product) {
     return null;
@@ -275,6 +337,38 @@ const formatCustomerLabel = (customer) => {
 
   return customer.username || '-';
 };
+
+const selectedProducts = computed(() => {
+  return playForm.value.productIds
+    .map((productId) => {
+      return findProductById(
+        productId
+      );
+    })
+    .filter(Boolean);
+});
+
+const hasTwoDigitProduct = computed(() => {
+  return selectedProducts.value.some(
+    (product) => {
+      return (
+        getProductKind(product) ===
+        PRODUCT_KIND.TWO_DIGIT
+      );
+    }
+  );
+});
+
+const hasThreeDigitProduct = computed(() => {
+  return selectedProducts.value.some(
+    (product) => {
+      return (
+        getProductKind(product) ===
+        PRODUCT_KIND.THREE_DIGIT
+      );
+    }
+  );
+});
 
 const formatRate = (value) => {
   const rate = Number(value || 0);
@@ -410,47 +504,103 @@ const formatNumberType = (value) => {
   return numberType;
 };
 
-const buildRateOptions = (
-  allowedNumbers
-) => {
+const normalizeRateNumber = (value) => {
+  const number = Number(value);
+
+  if (
+    !Number.isFinite(number) ||
+    number <= 0
+  ) {
+    return null;
+  }
+
+  return number;
+};
+
+const rateOptions = computed(() => {
   const optionMap = new Map();
 
-  allowedNumbers.forEach((number) => {
-    optionMap.set(Number(number), {
-      label: `${Number(number)}%`,
-      value: Number(number)
+  rates.value.forEach((rate) => {
+    if (rate.status === false) {
+      return;
+    }
+
+    const number =
+      normalizeRateNumber(
+        rate.number
+      );
+
+    if (
+      number === null ||
+      optionMap.has(number)
+    ) {
+      return;
+    }
+
+    optionMap.set(number, {
+      label: rate.name
+        ? `${rate.name} (${number}%)`
+        : `${number}%`,
+
+      value: number,
+
+      rateId:
+        rate.id ||
+        rate._id ||
+        null
     });
   });
 
-  rates.value.forEach((rate) => {
-    const number = Number(rate.number);
+  return Array
+    .from(optionMap.values())
+    .sort((first, second) => {
+      return (
+        first.value -
+        second.value
+      );
+    });
+});
 
-    if (allowedNumbers.includes(number)) {
-      optionMap.set(number, {
-        label:
-          rate.name ||
-          `${number}%`,
-        value: number
-      });
+const isAvailableRate = (value) => {
+  const number =
+    normalizeRateNumber(value);
+
+  if (number === null) {
+    return false;
+  }
+
+  return rateOptions.value.some(
+    (option) => {
+      return (
+        Number(option.value) ===
+        number
+      );
     }
-  });
-
-  return allowedNumbers.map((number) => {
-    return optionMap.get(Number(number));
-  });
+  );
 };
 
-const twoDigitRateOptions = computed(() => {
-  return buildRateOptions(
-    TWO_DIGIT_RATE_NUMBERS
-  );
-});
+const twoDigitRateOptions = rateOptions;
+const threeDigitRateOptions = rateOptions;
 
-const threeDigitRateOptions = computed(() => {
-  return buildRateOptions(
-    THREE_DIGIT_RATE_NUMBERS
+const getPreferredRate = (
+  preferredRate
+) => {
+  if (
+    isAvailableRate(
+      preferredRate
+    )
+  ) {
+    return Number(
+      preferredRate
+    );
+  }
+
+  return (
+    rateOptions.value[0]
+      ?.value ??
+    null
   );
-});
+};
 
 const categoryOptions = computed(() => {
   return categories.value.map(
@@ -464,25 +614,63 @@ const categoryOptions = computed(() => {
 });
 
 const productOptions = computed(() => {
-  return products.value.map((product) => {
-    const productCategoryId =
-      getProductCategoryId(product);
+  return products.value.map(
+    (product) => {
+      const productCategoryId =
+        getProductCategoryId(
+          product
+        );
 
-    const category =
-      findCategoryById(
-        productCategoryId
-      );
+      const category =
+        findCategoryById(
+          productCategoryId
+        );
 
-    return {
-      label: category?.name
-        ? `${product.name} (${category.name})`
-        : product.name,
+      const productKind =
+        getProductKind(product);
 
-      value:
-        product.id ||
-        product._id
-    };
-  });
+      let automaticText = '';
+
+      if (
+        productKind ===
+        PRODUCT_KIND.TWO_DIGIT
+      ) {
+        automaticText = '2D';
+      }
+
+      if (
+        productKind ===
+        PRODUCT_KIND.THREE_DIGIT
+      ) {
+        automaticText = '3D';
+      }
+
+      const labelParts = [
+        product.name
+      ];
+
+      if (category?.name) {
+        labelParts.push(
+          category.name
+        );
+      }
+
+      if (automaticText) {
+        labelParts.push(
+          automaticText
+        );
+      }
+
+      return {
+        label:
+          labelParts.join(' — '),
+
+        value:
+          product.id ||
+          product._id
+      };
+    }
+  );
 });
 
 const customerOptions = computed(() => {
@@ -520,36 +708,167 @@ const filterProductOptions = computed(() => {
   }));
 });
 
+const getDefaultProductIds = () => {
+  const twoDigitProduct =
+    products.value.find(
+      (product) => {
+        return (
+          getProductKind(product) ===
+          PRODUCT_KIND.TWO_DIGIT
+        );
+      }
+    );
+
+  const threeDigitProduct =
+    products.value.find(
+      (product) => {
+        return (
+          getProductKind(product) ===
+          PRODUCT_KIND.THREE_DIGIT
+        );
+      }
+    );
+
+  return [
+    getId(twoDigitProduct),
+    getId(threeDigitProduct)
+  ].filter(Boolean);
+};
+
 const createEmptyPlayRow = () => {
   return {
     localId: makeLocalId(),
     rowTitle: '',
+
     twoDigitNumber: null,
     threeDigitNumber: null,
+
     winTwoNumberType: null,
     winThreeNumberType: null,
+
     twoDigitAmount: null,
     threeDigitAmount: null,
+
+    /*
+     * The user controls both switches manually.
+     * Selecting a product only makes its section available.
+     */
     isTwoNumber: false,
     isThreeNumber: false
   };
+};
+
+const synchronizeProductsWithRows = ({
+  clearDisabled = true,
+  applyDefaultRates = true
+} = {}) => {
+  playForm.value.productIds =
+    Array.from(
+      new Set(
+        playForm.value.productIds
+          .map(String)
+      )
+    ).slice(0, 2);
+
+  /*
+   * Product selection controls which section is available.
+   * It only assigns a default rate when the current value is
+   * empty or no longer exists in the active Rate list.
+   * The user may select any active rate afterward.
+   */
+  if (hasTwoDigitProduct.value) {
+    if (
+      applyDefaultRates &&
+      !isAvailableRate(
+        playForm.value.twoDigitRate
+      )
+    ) {
+      playForm.value.twoDigitRate =
+        getPreferredRate(
+          TWO_DIGIT_RATE
+        );
+    }
+  } else {
+    playForm.value.twoDigitRate =
+      null;
+  }
+
+  if (hasThreeDigitProduct.value) {
+    if (
+      applyDefaultRates &&
+      !isAvailableRate(
+        playForm.value.threeDigitRate
+      )
+    ) {
+      playForm.value.threeDigitRate =
+        getPreferredRate(
+          THREE_DIGIT_RATE
+        );
+    }
+  } else {
+    playForm.value.threeDigitRate =
+      null;
+  }
+
+  playRows.value.forEach((row) => {
+    /*
+     * The switches remain fully manual.
+     * A switch is forced OFF only after its product is removed.
+     */
+    if (!hasTwoDigitProduct.value) {
+      row.isTwoNumber = false;
+
+      if (clearDisabled) {
+        row.twoDigitNumber = null;
+        row.twoDigitAmount = null;
+        row.winTwoNumberType = null;
+      }
+    }
+
+    if (!hasThreeDigitProduct.value) {
+      row.isThreeNumber = false;
+
+      if (clearDisabled) {
+        row.threeDigitNumber = null;
+        row.threeDigitAmount = null;
+        row.winThreeNumberType = null;
+      }
+    }
+  });
+};
+
+const onProductSelectionChange = () => {
+  errorMessage.value = '';
+
+  synchronizeProductsWithRows({
+    clearDisabled: true
+  });
 };
 
 const resetPlayForm = () => {
   playForm.value = {
     id: null,
     title: '',
-    categoryId: null,
-    productId: null,
+
+    categoryIds: [],
+
+    productIds: [],
+
     customerId: null,
     playDate: new Date(),
-    twoDigitRate: 100,
-    threeDigitRate: 100
+
+    twoDigitRate: null,
+
+    threeDigitRate: null
   };
 
   playRows.value = [
     createEmptyPlayRow()
   ];
+
+  synchronizeProductsWithRows({
+    clearDisabled: false
+  });
 };
 
 const getRatePercent = (value) => {
@@ -775,55 +1094,103 @@ const detailDisplayRows = computed(() => {
 });
 
 const getCategoryName = (row) => {
-  if (
-    row?.categoryId &&
-    typeof row.categoryId === 'object'
-  ) {
-    return row.categoryId.name || '-';
+  const categoryValues =
+    Array.isArray(
+      row?.categoryIds
+    ) &&
+    row.categoryIds.length > 0
+      ? row.categoryIds
+      : [
+          row?.categoryId ||
+          row?.category
+        ].filter(Boolean);
+
+  if (!categoryValues.length) {
+    return '-';
   }
 
-  if (
-    row?.category &&
-    typeof row.category === 'object'
-  ) {
-    return row.category.name || '-';
-  }
+  const names =
+    categoryValues
+      .map((categoryValue) => {
+        if (
+          categoryValue &&
+          typeof categoryValue ===
+            'object'
+        ) {
+          return (
+            categoryValue.name ||
+            ''
+          );
+        }
 
-  const categoryId = getId(
-    row?.categoryId ||
-    row?.category
+        const category =
+          findCategoryById(
+            getId(
+              categoryValue
+            )
+          );
+
+        return (
+          category?.name ||
+          ''
+        );
+      })
+      .filter(Boolean);
+
+  return (
+    names.join(', ') ||
+    '-'
   );
-
-  const category =
-    findCategoryById(categoryId);
-
-  return category?.name || '-';
 };
 
 const getProductName = (row) => {
-  if (
-    row?.productId &&
-    typeof row.productId === 'object'
-  ) {
-    return row.productId.name || '-';
+  const productValues =
+    Array.isArray(
+      row?.productIds
+    ) &&
+    row.productIds.length > 0
+      ? row.productIds
+      : [
+          row?.productId ||
+          row?.product
+        ].filter(Boolean);
+
+  if (!productValues.length) {
+    return '-';
   }
 
-  if (
-    row?.product &&
-    typeof row.product === 'object'
-  ) {
-    return row.product.name || '-';
-  }
+  const names =
+    productValues
+      .map((productValue) => {
+        if (
+          productValue &&
+          typeof productValue ===
+            'object'
+        ) {
+          return (
+            productValue.name ||
+            ''
+          );
+        }
 
-  const productId = getId(
-    row?.productId ||
-    row?.product
+        const product =
+          findProductById(
+            getId(
+              productValue
+            )
+          );
+
+        return (
+          product?.name ||
+          ''
+        );
+      })
+      .filter(Boolean);
+
+  return (
+    names.join(', ') ||
+    '-'
   );
-
-  const product =
-    findProductById(productId);
-
-  return product?.name || '-';
 };
 
 const getCustomerName = (row) => {
@@ -1683,31 +2050,6 @@ const onFilterCategoryChange = () => {
   filterProductId.value = null;
 };
 
-const onProductChange = () => {
-  if (!playForm.value.productId) {
-    return;
-  }
-
-  const selectedProduct =
-    findProductById(
-      playForm.value.productId
-    );
-
-  if (!selectedProduct) {
-    return;
-  }
-
-  const productCategoryId =
-    getProductCategoryId(
-      selectedProduct
-    );
-
-  if (productCategoryId) {
-    playForm.value.categoryId =
-      productCategoryId;
-  }
-};
-
 const addPlayRow = () => {
   errorMessage.value = '';
 
@@ -1768,20 +2110,25 @@ const openEditDialog = (play) => {
     title:
       play.title || '',
 
-    categoryId: getId(
-      play.categoryId ||
-      play.category
-    ),
+    categoryIds:
+      normalizeSelectedIds(
+        play.categoryIds,
+        play.categoryId ||
+        play.category
+      ),
 
-    productId: getId(
-      play.productId ||
-      play.product
-    ),
+    productIds:
+      normalizeSelectedIds(
+        play.productIds,
+        play.productId ||
+        play.product
+      ),
 
-    customerId: getId(
-      play.customerId ||
-      play.customer
-    ),
+    customerId:
+      getId(
+        play.customerId ||
+        play.customer
+      ),
 
     playDate:
       parseDatePickerValue(
@@ -1790,20 +2137,21 @@ const openEditDialog = (play) => {
       ),
 
     twoDigitRate:
-      getRatePercent(
-        play.twoDigitRate || 100
+      normalizeRateNumber(
+        play.twoDigitRate
       ),
 
     threeDigitRate:
-      getRatePercent(
-        play.threeDigitRate || 100
+      normalizeRateNumber(
+        play.threeDigitRate
       )
   };
 
   playRows.value =
     getPlayRows(play).map(
       (row) => ({
-        localId: makeLocalId(),
+        localId:
+          makeLocalId(),
 
         rowTitle:
           row.rowTitle ||
@@ -1849,6 +2197,10 @@ const openEditDialog = (play) => {
       createEmptyPlayRow()
     ];
   }
+
+  synchronizeProductsWithRows({
+    clearDisabled: false
+  });
 
   isEditMode.value = true;
   dialogVisible.value = true;
@@ -1903,72 +2255,88 @@ const validatePlayForm = () => {
     !playForm.value.title ||
     !playForm.value.title.trim()
   ) {
-    return t('invoice.errors.titleRequired');
+    return t(
+      'invoice.errors.titleRequired'
+    );
   }
 
-  if (!playForm.value.categoryId) {
-    return t('invoice.errors.categoryRequired');
+  if (
+    !Array.isArray(
+      playForm.value.categoryIds
+    ) ||
+    !playForm.value.categoryIds.length
+  ) {
+    return t(
+      'invoice.errors.categoryRequired'
+    );
   }
 
-  if (!playForm.value.productId) {
-    return t('invoice.errors.productRequired');
+  if (
+    !Array.isArray(
+      playForm.value.productIds
+    ) ||
+    !playForm.value.productIds.length
+  ) {
+    return t(
+      'invoice.errors.productRequired'
+    );
+  }
+
+  const unknownProduct =
+    selectedProducts.value.find(
+      (product) => {
+        return !getProductKind(
+          product
+        );
+      }
+    );
+
+  if (unknownProduct) {
+    return (
+      `Product "${unknownProduct.name}" ` +
+      'is not configured as ' +
+      '2 លេខ or 3 លេខ'
+    );
   }
 
   if (!playForm.value.customerId) {
-    return t('invoice.errors.customerRequired');
+    return t(
+      'invoice.errors.customerRequired'
+    );
   }
 
   if (!playForm.value.playDate) {
-    return t('invoice.errors.dateRequired');
+    return t(
+      'invoice.errors.dateRequired'
+    );
   }
 
   if (
-    !TWO_DIGIT_RATE_NUMBERS.includes(
-      Number(
-        playForm.value.twoDigitRate
-      )
+    hasTwoDigitProduct.value &&
+    !isAvailableRate(
+      playForm.value.twoDigitRate
     )
   ) {
-    return t('invoice.errors.invalidTwoDigitRate');
+    return t(
+      'invoice.errors.invalidTwoDigitRate'
+    );
   }
 
   if (
-    !THREE_DIGIT_RATE_NUMBERS.includes(
-      Number(
-        playForm.value.threeDigitRate
-      )
+    hasThreeDigitProduct.value &&
+    !isAvailableRate(
+      playForm.value.threeDigitRate
     )
   ) {
-    return t('invoice.errors.invalidThreeDigitRate');
-  }
-
-  const selectedProduct =
-    findProductById(
-      playForm.value.productId
+    return t(
+      'invoice.errors.invalidThreeDigitRate'
     );
-
-  if (!selectedProduct) {
-    return t('invoice.errors.selectedProductInvalid');
-  }
-
-  const productCategoryId =
-    getProductCategoryId(
-      selectedProduct
-    );
-
-  if (
-    productCategoryId &&
-    String(productCategoryId) !==
-      String(
-        playForm.value.categoryId
-      )
-  ) {
-    playForm.value.categoryId =
-      productCategoryId;
   }
 
   if (!playRows.value.length) {
-    return t('invoice.errors.atLeastOneRow');
+    return t(
+      'invoice.errors.atLeastOneRow'
+    );
   }
 
   for (
@@ -1979,7 +2347,8 @@ const validatePlayForm = () => {
     const row =
       playRows.value[index];
 
-    const rowNumber = index + 1;
+    const rowNumber =
+      index + 1;
 
     if (
       !row.rowTitle ||
@@ -1993,11 +2362,39 @@ const validatePlayForm = () => {
       );
     }
 
+    if (
+      !row.isTwoNumber &&
+      !row.isThreeNumber
+    ) {
+      return locale.value === 'km'
+        ? `ជួរទី ${rowNumber}: សូមបើក 2D ឬ 3D យ៉ាងហោចណាស់មួយ`
+        : `Row ${rowNumber}: Please enable 2D or 3D`;
+    }
+
+    if (
+      row.isTwoNumber &&
+      !hasTwoDigitProduct.value
+    ) {
+      return locale.value === 'km'
+        ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 2 លេខ មុនពេលបើក 2D`
+        : `Row ${rowNumber}: Select the 2 លេខ product before enabling 2D`;
+    }
+
+    if (
+      row.isThreeNumber &&
+      !hasThreeDigitProduct.value
+    ) {
+      return locale.value === 'km'
+        ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 3 លេខ មុនពេលបើក 3D`
+        : `Row ${rowNumber}: Select the 3 លេខ product before enabling 3D`;
+    }
+
     if (row.isTwoNumber) {
       if (
         row.twoDigitNumber === null ||
         row.twoDigitNumber ===
-          undefined
+          undefined ||
+        row.twoDigitNumber === ''
       ) {
         return t(
           'invoice.errors.twoDigitRequired',
@@ -2007,27 +2404,46 @@ const validatePlayForm = () => {
         );
       }
 
+      const twoDigitNumber =
+        Number(
+          row.twoDigitNumber
+        );
+
       if (
-        Number(
-          row.twoDigitNumber
-        ) < 0 ||
-        Number(
-          row.twoDigitNumber
-        ) > 99
+        !Number.isFinite(
+          twoDigitNumber
+        )
       ) {
-        return t(
-          'invoice.errors.twoDigitRange',
-          {
-            row: rowNumber
-          }
+        return (
+          `Row ${rowNumber}: ` +
+          '2D number must be valid'
         );
       }
 
-      if (
+      if (twoDigitNumber < 0) {
+        return (
+          `Row ${rowNumber}: ` +
+          '2D number cannot be negative'
+        );
+      }
+
+      const twoDigitAmount =
         Number(
           row.twoDigitAmount || 0
-        ) < 0
+        );
+
+      if (
+        !Number.isFinite(
+          twoDigitAmount
+        )
       ) {
+        return (
+          `Row ${rowNumber}: ` +
+          '2D amount must be valid'
+        );
+      }
+
+      if (twoDigitAmount < 0) {
         return t(
           'invoice.errors.twoDigitAmountNegative',
           {
@@ -2036,11 +2452,23 @@ const validatePlayForm = () => {
         );
       }
 
-      if (
+      const winTwoNumberType =
         Number(
           row.winTwoNumberType || 0
-        ) < 0
+        );
+
+      if (
+        !Number.isFinite(
+          winTwoNumberType
+        )
       ) {
+        return (
+          `Row ${rowNumber}: ` +
+          'Correct 2D value must be valid'
+        );
+      }
+
+      if (winTwoNumberType < 0) {
         return t(
           'invoice.errors.twoDigitTypeNegative',
           {
@@ -2052,10 +2480,10 @@ const validatePlayForm = () => {
 
     if (row.isThreeNumber) {
       if (
+        row.threeDigitNumber === null ||
         row.threeDigitNumber ===
-          null ||
-        row.threeDigitNumber ===
-          undefined
+          undefined ||
+        row.threeDigitNumber === ''
       ) {
         return t(
           'invoice.errors.threeDigitRequired',
@@ -2065,27 +2493,46 @@ const validatePlayForm = () => {
         );
       }
 
+      const threeDigitNumber =
+        Number(
+          row.threeDigitNumber
+        );
+
       if (
-        Number(
-          row.threeDigitNumber
-        ) < 0 ||
-        Number(
-          row.threeDigitNumber
-        ) > 999
+        !Number.isFinite(
+          threeDigitNumber
+        )
       ) {
-        return t(
-          'invoice.errors.threeDigitRange',
-          {
-            row: rowNumber
-          }
+        return (
+          `Row ${rowNumber}: ` +
+          '3D number must be valid'
         );
       }
 
-      if (
+      if (threeDigitNumber < 0) {
+        return (
+          `Row ${rowNumber}: ` +
+          '3D number cannot be negative'
+        );
+      }
+
+      const threeDigitAmount =
         Number(
           row.threeDigitAmount || 0
-        ) < 0
+        );
+
+      if (
+        !Number.isFinite(
+          threeDigitAmount
+        )
       ) {
+        return (
+          `Row ${rowNumber}: ` +
+          '3D amount must be valid'
+        );
+      }
+
+      if (threeDigitAmount < 0) {
         return t(
           'invoice.errors.threeDigitAmountNegative',
           {
@@ -2094,11 +2541,23 @@ const validatePlayForm = () => {
         );
       }
 
-      if (
+      const winThreeNumberType =
         Number(
           row.winThreeNumberType || 0
-        ) < 0
+        );
+
+      if (
+        !Number.isFinite(
+          winThreeNumberType
+        )
       ) {
+        return (
+          `Row ${rowNumber}: ` +
+          'Correct 3D value must be valid'
+        );
+      }
+
+      if (winThreeNumberType < 0) {
         return t(
           'invoice.errors.threeDigitTypeNegative',
           {
@@ -2117,28 +2576,39 @@ const buildPayload = () => {
     title:
       playForm.value.title.trim(),
 
-    categoryId:
-      playForm.value.categoryId,
+    categoryIds:
+      playForm.value.categoryIds
+        .map(String),
 
-    productId:
-      playForm.value.productId,
+    productIds:
+      playForm.value.productIds
+        .map(String),
 
     customerId:
       playForm.value.customerId,
 
-    playDate: formatDateForApi(
-      playForm.value.playDate
-    ),
+    playDate:
+      formatDateForApi(
+        playForm.value.playDate
+      ),
 
-    twoDigitRate: Number(
-      playForm.value.twoDigitRate ||
-      100
-    ),
+    twoDigitRate:
+      Number(
+        playForm.value.twoDigitRate ||
+        getPreferredRate(
+          TWO_DIGIT_RATE
+        ) ||
+        TWO_DIGIT_RATE
+      ),
 
-    threeDigitRate: Number(
-      playForm.value.threeDigitRate ||
-      100
-    ),
+    threeDigitRate:
+      Number(
+        playForm.value.threeDigitRate ||
+        getPreferredRate(
+          THREE_DIGIT_RATE
+        ) ||
+        THREE_DIGIT_RATE
+      ),
 
     rows: playRows.value.map(
       (row) => ({
@@ -2211,6 +2681,11 @@ const saveLotteryPlay = async () => {
   try {
     errorMessage.value = '';
     successMessage.value = '';
+
+    synchronizeProductsWithRows({
+      clearDisabled: false,
+      applyDefaultRates: true
+    });
 
     const validationError =
       validatePlayForm();
@@ -2893,14 +3368,18 @@ onMounted(async () => {
                 {{ t('invoice.fields.category') }}
               </label>
 
-              <Select
-                v-model="playForm.categoryId"
+              <MultiSelect
+                v-model="playForm.categoryIds"
                 :options="categoryOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.category')"
                 class="w-full"
+                display="chip"
                 showClear
+                filter
+                :maxSelectedLabels="3"
+                selectedItemsLabel="{0} selected"
               />
             </div>
 
@@ -2909,17 +3388,21 @@ onMounted(async () => {
                 {{ t('invoice.fields.product') }}
               </label>
 
-              <Select
-                v-model="playForm.productId"
+              <MultiSelect
+                v-model="playForm.productIds"
                 :options="productOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.product')"
                 class="w-full"
+                display="chip"
                 showClear
                 filter
+                :selectionLimit="2"
                 :filterPlaceholder="t('invoice.placeholders.searchProduct')"
-                @change="onProductChange"
+                :maxSelectedLabels="2"
+                selectedItemsLabel="{0} selected"
+                @change="onProductSelectionChange"
               />
             </div>
 
@@ -2935,6 +3418,10 @@ onMounted(async () => {
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.twoDigitRate')"
                 class="w-full"
+                :disabled="
+                  !hasTwoDigitProduct ||
+                  !twoDigitRateOptions.length
+                "
               />
             </div>
 
@@ -2950,6 +3437,10 @@ onMounted(async () => {
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.threeDigitRate')"
                 class="w-full"
+                :disabled="
+                  !hasThreeDigitProduct ||
+                  !threeDigitRateOptions.length
+                "
               />
             </div>
           </div>
@@ -3051,7 +3542,10 @@ onMounted(async () => {
                       </div>
                     </div>
 
-                    <ToggleSwitch v-model="row.isTwoNumber" />
+                    <ToggleSwitch
+                      v-model="row.isTwoNumber"
+                      :disabled="!hasTwoDigitProduct"
+                    />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -3064,9 +3558,8 @@ onMounted(async () => {
                         v-model="row.twoDigitNumber"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="0 - 99"
+                        placeholder="Enter 2D number"
                         :min="0"
-                        :max="99"
                         :disabled="!row.isTwoNumber"
                         :useGrouping="false"
                         :inputProps="{
@@ -3131,7 +3624,10 @@ onMounted(async () => {
                       </div>
                     </div>
 
-                    <ToggleSwitch v-model="row.isThreeNumber" />
+                    <ToggleSwitch
+                      v-model="row.isThreeNumber"
+                      :disabled="!hasThreeDigitProduct"
+                    />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -3144,9 +3640,8 @@ onMounted(async () => {
                         v-model="row.threeDigitNumber"
                         class="w-full"
                         input-class="w-full"
-                        placeholder="0 - 999"
+                        placeholder="Enter 3D number"
                         :min="0"
-                        :max="999"
                         :disabled="!row.isThreeNumber"
                         :useGrouping="false"
                         :inputProps="{
@@ -3610,6 +4105,7 @@ onMounted(async () => {
 
 :deep(.p-inputtext),
 :deep(.p-select),
+:deep(.p-multiselect),
 :deep(.p-inputnumber),
 :deep(.p-datepicker) {
   min-height: 44px;
@@ -3621,8 +4117,21 @@ onMounted(async () => {
 
 :deep(.p-inputnumber),
 :deep(.p-datepicker),
-:deep(.p-select) {
+:deep(.p-select),
+:deep(.p-multiselect) {
   width: 100%;
+}
+
+:deep(.p-multiselect-label) {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+:deep(.p-multiselect-chip) {
+  max-width: 100%;
 }
 
 @media (min-width: 640px) {
@@ -3687,6 +4196,7 @@ onMounted(async () => {
   }
 
   .p-select-overlay,
+  .p-multiselect-overlay,
   .p-datepicker-panel {
     max-width: calc(100vw - 1rem);
   }

@@ -121,82 +121,173 @@ export default {
     noInvoices: "No invoices found",
   },
 
-customer: {
-  title: "Customers",
+  customer: {
+    title: "Customer Management",
+    add: "Add Customer",
+    edit: "Edit",
+    delete: "Delete",
+    create: "Create",
+    update: "Update",
+    cancel: "Cancel",
+    search: "Search",
+    reset: "Reset",
 
-  add: "Add",
-  search: "Search",
-  reset: "Reset",
-  edit: "Edit",
-  delete: "Delete",
-  cancel: "Cancel",
-  create: "Create",
-  update: "Update",
+    searchPlaceholder:
+      "Search by username, email, branch, phone, or address",
 
-  searchPlaceholder: "Search customer...",
-  allStatuses: "All statuses",
-  noCustomers: "No customers found.",
-  pageOf: "Page {page} of {total}",
+    allStatuses: "All statuses",
+    noCustomers: "No customers found",
+    noEmail: "No email",
 
-  status: {
-    active: "Active",
-    inactive: "Inactive",
+    pageOf: "Page {page} of {total}",
+
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+
+    role: {
+      customer: "Customer",
+    },
+
+    login: {
+      title: "Customer login account",
+
+      description:
+        "Creates a linked User account with the customer role.",
+
+      ready: "Ready",
+      missing: "Missing",
+
+      readyLong: "Login ready",
+      missingLong: "No login account",
+
+      emailOptional: "Optional",
+
+      createPasswordPlaceholder:
+        "Minimum 6 characters",
+
+      updatePasswordPlaceholder:
+        "Enter a new password",
+
+      confirmPasswordPlaceholder:
+        "Enter password again",
+
+      createPasswordHelp:
+        "Password is required when creating a customer.",
+
+      legacyPasswordHelp:
+        "This customer does not have a login account. Enter a password to create one.",
+
+      existingPasswordHelp:
+        "Leave both password fields empty to keep the current password.",
+    },
+
+    sections: {
+      customerInformation:
+        "Customer information",
+    },
+
+    fields: {
+      username: "Username",
+      email: "Email",
+      role: "Role",
+      login: "Login account",
+      branch: "Branch",
+      phone: "Phone number",
+      balance: "Balance",
+      status: "Status",
+      address: "Address",
+      description: "Description",
+      password: "Password",
+      confirmPassword: "Confirm password",
+    },
+
+    placeholders: {
+      username: "Enter customer username",
+      email: "customer@example.com",
+      branch: "Enter branch",
+      phone: "Enter phone number",
+      address: "Enter customer address",
+      description: "Enter customer description",
+    },
+
+    columns: {
+      username: "Username",
+      email: "Email",
+      role: "Role",
+      login: "Login",
+      branch: "Branch",
+      phone: "Phone number",
+      balance: "Balance",
+      status: "Status",
+      action: "Actions",
+    },
+
+    dialogs: {
+      addTitle: "Create Customer",
+      editTitle: "Edit Customer",
+      deleteTitle: "Delete Customer",
+    },
+
+    deleteQuestion:
+      'Are you sure you want to delete customer "{name}"?',
+
+    deleteLoginNote:
+      "Deleting this customer also deletes the linked customer login account.",
+
+    messages: {
+      created:
+        "Customer and login account created successfully.",
+
+      updated:
+        "Customer and login account updated successfully.",
+
+      deleted:
+        "Customer and linked login account deleted successfully.",
+    },
+
+    errors: {
+      fetch:
+        "Could not fetch customers.",
+
+      save:
+        "Could not save customer.",
+
+      delete:
+        "Could not delete customer.",
+
+      idMissing:
+        "Customer ID was not found.",
+
+      usernameRequired:
+        "Username is required.",
+
+      usernameTooLong:
+        "Username cannot exceed 100 characters.",
+
+      invalidEmail:
+        "Please enter a valid email address.",
+
+      branchRequired:
+        "Branch is required.",
+
+      passwordRequired:
+        "Password is required to create customer login access.",
+
+      passwordTooShort:
+        "Password must contain at least 6 characters.",
+
+      passwordMismatch:
+        "Password and confirm password do not match.",
+
+      invalidBalance:
+        "Balance must be a valid number.",
+
+      balanceNegative:
+        "Balance cannot be negative.",
+    },
   },
-
-  columns: {
-    username: "Username",
-    branch: "Branch",
-    phone: "Phone",
-    balance: "Balance",
-    status: "Status",
-    action: "Action",
-  },
-
-  dialogs: {
-    addTitle: "Add Customer",
-    editTitle: "Edit Customer",
-    deleteTitle: "Delete Customer",
-  },
-
-  fields: {
-    username: "Username",
-    branch: "Branch ID",
-    phone: "Phone Number",
-    balance: "Balance",
-    address: "Address",
-    description: "Description",
-    status: "Status",
-  },
-
-  placeholders: {
-    username: "Enter username",
-    branch: "Enter branch ID",
-    phone: "Enter phone number",
-    address: "Enter address",
-    description: "Enter customer description",
-  },
-
-  deleteQuestion: "Delete {name}?",
-  deleteWarning:
-    "This customer will be permanently removed.",
-
-  messages: {
-    created: "Customer created successfully",
-    updated: "Customer updated successfully",
-    deleted: "Customer deleted successfully",
-  },
-
-  errors: {
-    fetch: "Could not fetch customers",
-    save: "Could not save customer",
-    delete: "Could not delete customer",
-    idMissing: "Customer ID was not found",
-    usernameRequired: "Username is required",
-    branchRequired: "Branch ID is required",
-    balanceNegative:
-      "Balance cannot be negative",
-  },
-},
 
 product: {
   title: "Products",
@@ -685,4 +776,136 @@ dashboard: {
     users: "User List",
   },
 },
+profile: {
+  title: 'Profile',
+
+  subtitle:
+    'Manage your personal information and password',
+
+  loading:
+    'Loading profile...',
+
+  save:
+    'Save Changes',
+
+  fields: {
+    name: 'Name',
+    email: 'Email',
+    currentPassword:
+      'Current Password',
+    newPassword:
+      'New Password',
+    confirmPassword:
+      'Confirm Password'
+  },
+
+  placeholders: {
+    name:
+      'Enter your name',
+
+    email:
+      'Enter your email address',
+
+    currentPassword:
+      'Enter current password',
+
+    newPassword:
+      'Enter new password',
+
+    confirmPassword:
+      'Enter new password again'
+  },
+
+  changePassword: {
+    title:
+      'Change Password',
+
+    description:
+      'Leave these fields empty when you do not want to change your password.'
+  },
+
+  messages: {
+    updated:
+      'Profile updated successfully'
+  },
+
+  errors: {
+    load:
+      'Could not load profile',
+
+    update:
+      'Could not update profile',
+
+    nameRequired:
+      'Name is required',
+
+    emailRequired:
+      'Email is required',
+
+    emailInvalid:
+      'Please enter a valid email address',
+
+    currentPasswordRequired:
+      'Current password is required',
+
+    newPasswordRequired:
+      'New password is required',
+
+    newPasswordMin:
+      'New password must be at least 6 characters',
+
+    confirmPasswordRequired:
+      'Confirm password is required',
+
+    confirmPasswordMismatch:
+      'Confirm password does not match',
+
+    passwordMustBeDifferent:
+      'New password must be different from the current password'
+  }
+},
+login: {
+  title: 'Login',
+
+  fields: {
+    identifier:
+      'Username or email',
+
+    password:
+      'Password'
+  },
+
+  placeholders: {
+    identifier:
+      'Enter username or email',
+
+    password:
+      'Enter password'
+  },
+
+  loginButton:
+    'Login',
+
+  noAccount:
+    'No account?',
+
+  registerHere:
+    'Register here',
+
+  messages: {
+    successTitle:
+      'Success',
+
+    successDetail:
+      'Logged in successfully',
+
+    failedTitle:
+      'Login failed'
+  },
+
+  errors: {
+    invalidCredentials:
+      'Invalid username, email, or password'
+  }
+}
 };

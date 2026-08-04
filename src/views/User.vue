@@ -1,10 +1,5 @@
 <script setup>
-import {
-  computed,
-  onMounted,
-  ref
-} from "vue";
-
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import Button from "primevue/button";
@@ -21,6 +16,28 @@ import Tag from "primevue/tag";
 import api from "../services/api";
 
 const { t, locale } = useI18n();
+
+/*
+|--------------------------------------------------------------------------
+| Translation fallback
+|--------------------------------------------------------------------------
+*/
+
+const translate = (key, fallback, params = undefined) => {
+  const translated = params
+    ? t(key, params)
+    : t(key);
+
+  return translated === key
+    ? fallback
+    : translated;
+};
+
+/*
+|--------------------------------------------------------------------------
+| State
+|--------------------------------------------------------------------------
+*/
 
 const users = ref([]);
 
@@ -44,14 +61,19 @@ const page = ref(1);
 const limit = ref(10);
 const totalRecords = ref(0);
 
+const form = ref({
+  id: null,
+  name: "",
+  username: "",
+  email: "",
+  password: "",
+  role: "user",
+});
+
 /*
 |--------------------------------------------------------------------------
-| Role options
+| Options
 |--------------------------------------------------------------------------
-|
-| Computed is required so labels change immediately when the application
-| language changes.
-|
 */
 
 const roleOptions = computed(() => {
@@ -67,13 +89,11 @@ const roleOptions = computed(() => {
   ];
 });
 
-const form = ref({
-  id: null,
-  name: "",
-  email: "",
-  password: "",
-  role: "user",
-});
+/*
+|--------------------------------------------------------------------------
+| Pagination
+|--------------------------------------------------------------------------
+*/
 
 const totalPages = computed(() => {
   return Math.max(
@@ -85,32 +105,23 @@ const totalPages = computed(() => {
   );
 });
 
-const extractArrayData = (
-  response,
-  keys = []
-) => {
-  if (
-    Array.isArray(
-      response.data?.data
-    )
-  ) {
+/*
+|--------------------------------------------------------------------------
+| API response helpers
+|--------------------------------------------------------------------------
+*/
+
+const extractArrayData = (response, keys = []) => {
+  if (Array.isArray(response.data?.data)) {
     return response.data.data;
   }
 
   for (const key of keys) {
-    if (
-      Array.isArray(
-        response.data?.data?.[key]
-      )
-    ) {
+    if (Array.isArray(response.data?.data?.[key])) {
       return response.data.data[key];
     }
 
-    if (
-      Array.isArray(
-        response.data?.[key]
-      )
-    ) {
+    if (Array.isArray(response.data?.[key])) {
       return response.data[key];
     }
   }
@@ -124,20 +135,51 @@ const extractTotalRecords = (
 ) => {
   return (
     response.data?.pagination?.total ??
-    response.data?.data?.pagination
-      ?.total ??
+    response.data?.data?.pagination?.total ??
     response.data?.data?.total ??
     response.data?.total ??
     fallback
   );
 };
 
-const getUserId = (user) => {
+const getApiErrorMessage = (
+  error,
+  fallbackKey
+) => {
   return (
-    user?.id ||
-    user?._id ||
-    null
+    error.response?.data?.message ||
+    t(fallbackKey)
   );
+};
+
+/*
+|--------------------------------------------------------------------------
+| User helpers
+|--------------------------------------------------------------------------
+*/
+
+const getUserId = (user) => {
+  return user?.id || user?._id || null;
+};
+
+const getUsername = (user) => {
+  return user?.username || "-";
+};
+
+const getDisplayName = (user) => {
+  return user?.name || "-";
+};
+
+const getRoleLabel = (role) => {
+  return role === "admin"
+    ? t("user.roles.admin")
+    : t("user.roles.user");
+};
+
+const getRoleSeverity = (role) => {
+  return role === "admin"
+    ? "danger"
+    : "info";
 };
 
 /*
@@ -153,11 +195,7 @@ const formatDate = (value) => {
 
   const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "-";
   }
 
@@ -166,39 +204,20 @@ const formatDate = (value) => {
       ? "km-KH"
       : "en-GB";
 
-  return date.toLocaleString(
-    dateLocale,
-    {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+  return date.toLocaleString(dateLocale, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
-const getRoleLabel = (role) => {
-  return role === "admin"
-    ? t("user.roles.admin")
-    : t("user.roles.user");
-};
-
-const getRoleSeverity = (role) => {
-  return role === "admin"
-    ? "danger"
-    : "info";
-};
-
-const getApiErrorMessage = (
-  error,
-  fallbackKey
-) => {
-  return (
-    error.response?.data?.message ||
-    t(fallbackKey)
-  );
-};
+/*
+|--------------------------------------------------------------------------
+| Message and form helpers
+|--------------------------------------------------------------------------
+*/
 
 const clearMessages = () => {
   errorMessage.value = "";
@@ -209,6 +228,7 @@ const resetForm = () => {
   form.value = {
     id: null,
     name: "",
+    username: "",
     email: "",
     password: "",
     role: "user",
@@ -231,14 +251,14 @@ const fetchUsers = async () => {
       limit: limit.value,
     };
 
-    if (search.value.trim()) {
-      params.search =
-        search.value.trim();
+    const searchValue = search.value.trim();
+
+    if (searchValue) {
+      params.search = searchValue;
     }
 
     if (filterRole.value) {
-      params.role =
-        filterRole.value;
+      params.role = filterRole.value;
     }
 
     const response = await api.get(
@@ -248,21 +268,19 @@ const fetchUsers = async () => {
       }
     );
 
-    users.value =
-      extractArrayData(
-        response,
-        [
-          "users",
-          "items",
-          "results",
-        ]
-      );
+    users.value = extractArrayData(
+      response,
+      [
+        "users",
+        "items",
+        "results",
+      ]
+    );
 
-    totalRecords.value =
-      extractTotalRecords(
-        response,
-        users.value.length
-      );
+    totalRecords.value = extractTotalRecords(
+      response,
+      users.value.length
+    );
   } catch (error) {
     console.error(
       "Fetch users error:",
@@ -270,16 +288,22 @@ const fetchUsers = async () => {
     );
 
     users.value = [];
+    totalRecords.value = 0;
 
-    errorMessage.value =
-      getApiErrorMessage(
-        error,
-        "user.errors.fetch"
-      );
+    errorMessage.value = getApiErrorMessage(
+      error,
+      "user.errors.fetch"
+    );
   } finally {
     loading.value = false;
   }
 };
+
+/*
+|--------------------------------------------------------------------------
+| Filters
+|--------------------------------------------------------------------------
+*/
 
 const applyFilter = () => {
   page.value = 1;
@@ -294,12 +318,15 @@ const clearFilter = () => {
   fetchUsers();
 };
 
-const onPageChange = (event) => {
-  page.value =
-    event.page + 1;
+/*
+|--------------------------------------------------------------------------
+| Pagination actions
+|--------------------------------------------------------------------------
+*/
 
-  limit.value =
-    event.rows;
+const onPageChange = (event) => {
+  page.value = event.page + 1;
+  limit.value = event.rows;
 
   fetchUsers();
 };
@@ -313,27 +340,24 @@ const goToPreviousPage = () => {
   }
 
   page.value -= 1;
-
   fetchUsers();
 };
 
 const goToNextPage = () => {
   if (
     loading.value ||
-    page.value >=
-      totalPages.value
+    page.value >= totalPages.value
   ) {
     return;
   }
 
   page.value += 1;
-
   fetchUsers();
 };
 
 /*
 |--------------------------------------------------------------------------
-| Form dialog
+| Create and edit dialog
 |--------------------------------------------------------------------------
 */
 
@@ -350,10 +374,11 @@ const openEditDialog = (user) => {
 
   form.value = {
     id: getUserId(user),
-    name: user.name || "",
-    email: user.email || "",
+    name: user?.name || "",
+    username: user?.username || "",
+    email: user?.email || "",
     password: "",
-    role: user.role || "user",
+    role: user?.role || "user",
   };
 
   isEditMode.value = true;
@@ -366,38 +391,68 @@ const closeFormDialog = () => {
   }
 
   formDialogVisible.value = false;
-
   resetForm();
 };
 
+/*
+|--------------------------------------------------------------------------
+| Validation
+|--------------------------------------------------------------------------
+*/
+
 const validateForm = () => {
-  if (
-    !form.value.name.trim()
-  ) {
-    return t(
-      "user.errors.nameRequired"
+  const name = form.value.name.trim();
+  const username = form.value.username
+    .trim()
+    .toLowerCase();
+  const email = form.value.email
+    .trim()
+    .toLowerCase();
+
+  if (!name) {
+    return t("user.errors.nameRequired");
+  }
+
+  if (!username) {
+    return translate(
+      "user.errors.usernameRequired",
+      "Username is required"
     );
   }
 
-  if (
-    !form.value.email.trim()
-  ) {
-    return t(
-      "user.errors.emailRequired"
+  if (username.length < 3) {
+    return translate(
+      "user.errors.usernameMin",
+      "Username must be at least 3 characters"
     );
+  }
+
+  if (username.length > 30) {
+    return translate(
+      "user.errors.usernameMax",
+      "Username cannot be longer than 30 characters"
+    );
+  }
+
+  const usernamePattern =
+    /^[a-z0-9._-]+$/;
+
+  if (!usernamePattern.test(username)) {
+    return translate(
+      "user.errors.usernameInvalid",
+      "Username can only contain letters, numbers, dots, underscores, and hyphens"
+    );
+  }
+
+  if (!email) {
+    return t("user.errors.emailRequired");
   }
 
   const emailPattern =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (
-    !emailPattern.test(
-      form.value.email.trim()
-    )
-  ) {
-    return t(
-      "user.errors.emailInvalid"
-    );
+  if (!emailPattern.test(email)) {
+    return t("user.errors.emailInvalid");
   }
 
   if (
@@ -431,10 +486,21 @@ const validateForm = () => {
   return "";
 };
 
+/*
+|--------------------------------------------------------------------------
+| Payload
+|--------------------------------------------------------------------------
+*/
+
 const buildPayload = () => {
   const payload = {
     name:
       form.value.name.trim(),
+
+    username:
+      form.value.username
+        .trim()
+        .toLowerCase(),
 
     email:
       form.value.email
@@ -452,6 +518,12 @@ const buildPayload = () => {
 
   return payload;
 };
+
+/*
+|--------------------------------------------------------------------------
+| Save user
+|--------------------------------------------------------------------------
+*/
 
 const saveUser = async () => {
   try {
@@ -474,29 +546,34 @@ const saveUser = async () => {
       buildPayload();
 
     if (isEditMode.value) {
+      if (!form.value.id) {
+        errorMessage.value = t(
+          "user.errors.idMissing"
+        );
+
+        return;
+      }
+
       await api.put(
         `/users/${form.value.id}`,
         payload
       );
 
-      successMessage.value =
-        t(
-          "user.messages.updated"
-        );
+      successMessage.value = t(
+        "user.messages.updated"
+      );
     } else {
       await api.post(
         "/users",
         payload
       );
 
-      successMessage.value =
-        t(
-          "user.messages.created"
-        );
+      successMessage.value = t(
+        "user.messages.created"
+      );
     }
 
     formDialogVisible.value = false;
-
     resetForm();
 
     await fetchUsers();
@@ -548,16 +625,14 @@ const confirmDeleteUser = async () => {
     errorMessage.value = "";
     successMessage.value = "";
 
-    const userId =
-      getUserId(
-        selectedUser.value
-      );
+    const userId = getUserId(
+      selectedUser.value
+    );
 
     if (!userId) {
-      errorMessage.value =
-        t(
-          "user.errors.idMissing"
-        );
+      errorMessage.value = t(
+        "user.errors.idMissing"
+      );
 
       return;
     }
@@ -566,10 +641,9 @@ const confirmDeleteUser = async () => {
       `/users/${userId}`
     );
 
-    successMessage.value =
-      t(
-        "user.messages.deleted"
-      );
+    successMessage.value = t(
+      "user.messages.deleted"
+    );
 
     deleteDialogVisible.value = false;
     selectedUser.value = null;
@@ -600,6 +674,12 @@ const confirmDeleteUser = async () => {
   }
 };
 
+/*
+|--------------------------------------------------------------------------
+| Page load
+|--------------------------------------------------------------------------
+*/
+
 onMounted(() => {
   fetchUsers();
 });
@@ -607,70 +687,31 @@ onMounted(() => {
 
 <template>
   <div
-    class="
-      mx-auto
-      w-full
-      max-w-7xl
-      p-2
-      sm:p-4
-      lg:p-6
-    "
+    class="mx-auto w-full max-w-7xl p-2 sm:p-4 lg:p-6"
   >
     <Card>
       <template #title>
         <div
-          class="
-            flex
-            items-center
-            justify-between
-            gap-3
-          "
+          class="flex items-center justify-between gap-3"
         >
           <div
-            class="
-              flex
-              min-w-0
-              items-center
-              gap-3
-            "
+            class="flex min-w-0 items-center gap-3"
           >
             <div
-              class="
-                flex
-                h-10
-                w-10
-                shrink-0
-                items-center
-                justify-center
-                rounded-xl
-                bg-cyan-100
-                text-cyan-700
-              "
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700"
             >
-              <i
-                class="
-                  pi
-                  pi-user-edit
-                "
-              ></i>
+              <i class="pi pi-user-edit"></i>
             </div>
 
             <h1
-              class="
-                truncate
-                text-xl
-                font-bold
-                sm:text-2xl
-              "
+              class="truncate text-xl font-bold sm:text-2xl"
             >
               {{ t("user.title") }}
             </h1>
           </div>
 
           <Button
-            :label="
-              t('user.add')
-            "
+            :label="t('user.add')"
             icon="pi pi-plus"
             size="small"
             @click="openCreateDialog"
@@ -684,9 +725,7 @@ onMounted(() => {
           severity="error"
           class="mb-3"
           closable
-          @close="
-            errorMessage = ''
-          "
+          @close="errorMessage = ''"
         >
           {{ errorMessage }}
         </Message>
@@ -696,35 +735,25 @@ onMounted(() => {
           severity="success"
           class="mb-3"
           closable
-          @close="
-            successMessage = ''
-          "
+          @close="successMessage = ''"
         >
           {{ successMessage }}
         </Message>
 
         <!-- Filters -->
-
         <div
-          class="
-            mb-4
-            grid
-            grid-cols-1
-            gap-2
-            sm:grid-cols-[1fr_190px_auto]
-          "
+          class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_190px_auto]"
         >
           <InputText
             v-model="search"
             class="w-full"
             :placeholder="
-              t(
-                'user.searchPlaceholder'
+              translate(
+                'user.searchPlaceholder',
+                'Search username, name, or email'
               )
             "
-            @keyup.enter="
-              applyFilter
-            "
+            @keyup.enter="applyFilter"
           />
 
           <Select
@@ -732,25 +761,16 @@ onMounted(() => {
             :options="roleOptions"
             optionLabel="label"
             optionValue="value"
-            :placeholder="
-              t('user.allRoles')
-            "
+            :placeholder="t('user.allRoles')"
             class="w-full"
             showClear
           />
 
           <div
-            class="
-              grid
-              grid-cols-2
-              gap-2
-              sm:flex
-            "
+            class="grid grid-cols-2 gap-2 sm:flex"
           >
             <Button
-              :label="
-                t('user.search')
-              "
+              :label="t('user.search')"
               icon="pi pi-search"
               @click="applyFilter"
             />
@@ -759,136 +779,82 @@ onMounted(() => {
               icon="pi pi-refresh"
               severity="secondary"
               outlined
-              :aria-label="
-                t('user.reset')
-              "
-              :title="
-                t('user.reset')
-              "
+              :aria-label="t('user.reset')"
+              :title="t('user.reset')"
               @click="clearFilter"
             />
           </div>
         </div>
 
-        <!-- Smartphone cards -->
-
-        <div
-          class="
-            space-y-3
-            md:hidden
-          "
-        >
+        <!-- Mobile cards -->
+        <div class="space-y-3 md:hidden">
           <div
             v-if="loading"
-            class="
-              py-10
-              text-center
-            "
+            class="py-10 text-center"
           >
             <i
-              class="
-                pi
-                pi-spin
-                pi-spinner
-                text-2xl
-                text-primary
-              "
+              class="pi pi-spin pi-spinner text-2xl text-primary"
             ></i>
           </div>
 
           <template v-else>
             <article
               v-for="user in users"
-              :key="
-                getUserId(user)
-              "
-              class="
-                rounded-xl
-                border
-                border-gray-200
-                bg-white
-                p-4
-                shadow-sm
-              "
+              :key="getUserId(user)"
+              class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div
-                class="
-                  flex
-                  items-start
-                  justify-between
-                  gap-3
-                "
+                class="flex items-start justify-between gap-3"
               >
                 <div class="min-w-0">
-                  <h2
-                    class="
-                      truncate
-                      text-lg
-                      font-bold
-                    "
+                  <div
+                    class="flex items-center gap-2"
                   >
-                    {{
-                      user.name ||
-                      "-"
-                    }}
-                  </h2>
+                    <i
+                      class="pi pi-at text-sm text-cyan-600"
+                    ></i>
+
+                    <h2
+                      class="truncate text-lg font-bold"
+                    >
+                      {{ getUsername(user) }}
+                    </h2>
+                  </div>
 
                   <div
-                    class="
-                      mt-1
-                      break-all
-                      text-sm
-                      text-gray-500
-                    "
+                    class="mt-1 truncate text-sm font-medium text-gray-700"
                   >
-                    {{
-                      user.email ||
-                      "-"
-                    }}
+                    {{ getDisplayName(user) }}
+                  </div>
+
+                  <div
+                    class="mt-1 break-all text-sm text-gray-500"
+                  >
+                    {{ user.email || "-" }}
                   </div>
                 </div>
 
                 <Tag
                   :value="
-                    getRoleLabel(
-                      user.role
-                    )
+                    getRoleLabel(user.role)
                   "
                   :severity="
-                    getRoleSeverity(
-                      user.role
-                    )
+                    getRoleSeverity(user.role)
                   "
                 />
               </div>
 
               <div
-                class="
-                  mt-3
-                  rounded-lg
-                  bg-gray-50
-                  p-3
-                "
+                class="mt-3 rounded-lg bg-gray-50 p-3"
               >
                 <div
-                  class="
-                    text-xs
-                    text-gray-500
-                  "
+                  class="text-xs text-gray-500"
                 >
-                  {{
-                    t(
-                      "user.created"
-                    )
-                  }}
+                  {{ t("user.created") }}
                 </div>
 
                 <div
-                  class="
-                    mt-1
-                    text-sm
-                    font-medium
-                  "
+                  class="mt-1 text-sm font-medium"
                 >
                   {{
                     formatDate(
@@ -899,38 +865,25 @@ onMounted(() => {
               </div>
 
               <div
-                class="
-                  mt-3
-                  grid
-                  grid-cols-2
-                  gap-2
-                "
+                class="mt-3 grid grid-cols-2 gap-2"
               >
                 <Button
-                  :label="
-                    t('user.edit')
-                  "
+                  :label="t('user.edit')"
                   icon="pi pi-pencil"
                   severity="info"
                   outlined
                   @click="
-                    openEditDialog(
-                      user
-                    )
+                    openEditDialog(user)
                   "
                 />
 
                 <Button
-                  :label="
-                    t('user.delete')
-                  "
+                  :label="t('user.delete')"
                   icon="pi pi-trash"
                   severity="danger"
                   outlined
                   @click="
-                    openDeleteDialog(
-                      user
-                    )
+                    openDeleteDialog(user)
                   "
                 />
               </div>
@@ -938,52 +891,22 @@ onMounted(() => {
 
             <div
               v-if="!users.length"
-              class="
-                rounded-xl
-                border
-                border-dashed
-                border-gray-300
-                py-10
-                text-center
-                text-gray-500
-              "
+              class="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-500"
             >
-              {{
-                t(
-                  "user.noUsers"
-                )
-              }}
+              {{ t("user.noUsers") }}
             </div>
           </template>
 
+          <!-- Mobile pagination -->
           <div
             v-if="totalRecords > 0"
-            class="
-              flex
-              items-center
-              justify-between
-              rounded-xl
-              border
-              border-gray-200
-              p-2
-            "
+            class="flex items-center justify-between rounded-xl border border-gray-200 p-2"
           >
             <Button
               icon="pi pi-chevron-left"
               severity="secondary"
               text
               rounded
-              :aria-label="
-                t('user.pageOf', {
-                  page:
-                    Math.max(
-                      page - 1,
-                      1
-                    ),
-                  total:
-                    totalPages
-                })
-              "
               :disabled="
                 page <= 1 ||
                 loading
@@ -994,20 +917,13 @@ onMounted(() => {
             />
 
             <span
-              class="
-                text-sm
-                font-medium
-              "
+              class="text-sm font-medium"
             >
               {{
-                t(
-                  "user.pageOf",
-                  {
-                    page,
-                    total:
-                      totalPages
-                  }
-                )
+                t("user.pageOf", {
+                  page,
+                  total: totalPages,
+                })
               }}
             </span>
 
@@ -1016,20 +932,8 @@ onMounted(() => {
               severity="secondary"
               text
               rounded
-              :aria-label="
-                t('user.pageOf', {
-                  page:
-                    Math.min(
-                      page + 1,
-                      totalPages
-                    ),
-                  total:
-                    totalPages
-                })
-              "
               :disabled="
-                page >=
-                  totalPages ||
+                page >= totalPages ||
                 loading
               "
               @click="
@@ -1040,13 +944,7 @@ onMounted(() => {
         </div>
 
         <!-- Desktop table -->
-
-        <div
-          class="
-            hidden
-            md:block
-          "
-        >
+        <div class="hidden md:block">
           <DataTable
             :value="users"
             :loading="loading"
@@ -1061,75 +959,78 @@ onMounted(() => {
             :totalRecords="
               totalRecords
             "
-            :rowsPerPageOptions="
-              [5, 10, 20, 50]
-            "
-            tableStyle="
-              min-width: 850px
-            "
+            :rowsPerPageOptions="[
+              5,
+              10,
+              20,
+              50,
+            ]"
+            tableStyle="min-width: 980px"
             @page="onPageChange"
           >
             <Column
-              field="name"
+              field="username"
               :header="
-                t(
-                  'user.columns.name'
+                translate(
+                  'user.columns.username',
+                  'Username'
                 )
               "
-              style="
-                min-width: 170px
-              "
+              style="min-width: 170px"
             >
-              <template
-                #body="{ data }"
-              >
-                <span
-                  class="font-semibold"
+              <template #body="{ data }">
+                <div
+                  class="flex items-center gap-2 font-semibold"
                 >
-                  {{
-                    data.name ||
-                    "-"
-                  }}
-                </span>
+                  <i
+                    class="pi pi-at text-sm text-cyan-600"
+                  ></i>
+
+                  <span>
+                    {{ getUsername(data) }}
+                  </span>
+                </div>
+              </template>
+            </Column>
+
+            <Column
+              field="name"
+              :header="
+                t('user.columns.name')
+              "
+              style="min-width: 170px"
+            >
+              <template #body="{ data }">
+                {{ getDisplayName(data) }}
               </template>
             </Column>
 
             <Column
               field="email"
               :header="
-                t(
-                  'user.columns.email'
-                )
+                t('user.columns.email')
               "
-              style="
-                min-width: 220px
-              "
-            />
+              style="min-width: 220px"
+            >
+              <template #body="{ data }">
+                {{ data.email || "-" }}
+              </template>
+            </Column>
 
             <Column
               field="role"
               :header="
-                t(
-                  'user.columns.role'
-                )
+                t('user.columns.role')
               "
-              style="
-                min-width: 140px
-              "
+              style="min-width: 130px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 <Tag
                   :value="
-                    getRoleLabel(
-                      data.role
-                    )
+                    getRoleLabel(data.role)
                   "
                   :severity="
-                    getRoleSeverity(
-                      data.role
-                    )
+                    getRoleSeverity(data.role)
                   "
                 />
               </template>
@@ -1138,17 +1039,11 @@ onMounted(() => {
             <Column
               field="createdAt"
               :header="
-                t(
-                  'user.columns.created'
-                )
+                t('user.columns.created')
               "
-              style="
-                min-width: 180px
-              "
+              style="min-width: 180px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 {{
                   formatDate(
                     data.createdAt
@@ -1159,25 +1054,14 @@ onMounted(() => {
 
             <Column
               :header="
-                t(
-                  'user.columns.action'
-                )
+                t('user.columns.action')
               "
               frozen
               alignFrozen="right"
-              style="
-                min-width: 120px
-              "
+              style="min-width: 120px"
             >
-              <template
-                #body="{ data }"
-              >
-                <div
-                  class="
-                    flex
-                    gap-2
-                  "
-                >
+              <template #body="{ data }">
+                <div class="flex gap-2">
                   <Button
                     icon="pi pi-pencil"
                     size="small"
@@ -1189,9 +1073,7 @@ onMounted(() => {
                       t('user.edit')
                     "
                     @click="
-                      openEditDialog(
-                        data
-                      )
+                      openEditDialog(data)
                     "
                   />
 
@@ -1200,19 +1082,13 @@ onMounted(() => {
                     size="small"
                     severity="danger"
                     :aria-label="
-                      t(
-                        'user.delete'
-                      )
+                      t('user.delete')
                     "
                     :title="
-                      t(
-                        'user.delete'
-                      )
+                      t('user.delete')
                     "
                     @click="
-                      openDeleteDialog(
-                        data
-                      )
+                      openDeleteDialog(data)
                     "
                   />
                 </div>
@@ -1221,17 +1097,9 @@ onMounted(() => {
 
             <template #empty>
               <div
-                class="
-                  py-8
-                  text-center
-                  text-gray-500
-                "
+                class="py-8 text-center text-gray-500"
               >
-                {{
-                  t(
-                    "user.noUsers"
-                  )
-                }}
+                {{ t("user.noUsers") }}
               </div>
             </template>
           </DataTable>
@@ -1239,8 +1107,7 @@ onMounted(() => {
       </template>
     </Card>
 
-    <!-- Add/Edit user -->
-
+    <!-- Create or edit user -->
     <Dialog
       v-model:visible="
         formDialogVisible
@@ -1248,103 +1115,124 @@ onMounted(() => {
       modal
       :header="
         isEditMode
-          ? t(
-              'user.dialogs.editTitle'
-            )
-          : t(
-              'user.dialogs.addTitle'
-            )
+          ? t('user.dialogs.editTitle')
+          : t('user.dialogs.addTitle')
       "
       :style="{
         width: '95vw',
-        maxWidth: '580px'
+        maxWidth: '580px',
+      }"
+      :breakpoints="{
+        '640px': '100vw',
       }"
       :closable="!saving"
       :draggable="false"
+      :dismissableMask="false"
+      :blockScroll="true"
       class="user-form-dialog"
     >
       <div class="space-y-4">
         <Message
           v-if="errorMessage"
           severity="error"
+          closable
+          @close="errorMessage = ''"
         >
           {{ errorMessage }}
         </Message>
 
+        <!-- Full name -->
         <div>
           <label
-            class="
-              mb-1
-              block
-              text-sm
-              font-medium
-            "
+            for="user-name"
+            class="mb-1 block text-sm font-medium"
           >
-            {{
-              t(
-                "user.fields.name"
-              )
-            }}
+            {{ t("user.fields.name") }}
           </label>
 
           <InputText
+            id="user-name"
             v-model="form.name"
             class="w-full"
             :placeholder="
-              t(
-                'user.placeholders.name'
-              )
+              t('user.placeholders.name')
             "
             autocomplete="name"
           />
         </div>
 
+        <!-- Username -->
         <div>
           <label
-            class="
-              mb-1
-              block
-              text-sm
-              font-medium
-            "
+            for="user-username"
+            class="mb-1 block text-sm font-medium"
           >
             {{
-              t(
-                "user.fields.email"
+              translate(
+                "user.fields.username",
+                "Username"
               )
             }}
           </label>
 
           <InputText
+            id="user-username"
+            v-model="form.username"
+            class="w-full"
+            :placeholder="
+              translate(
+                'user.placeholders.username',
+                'Enter username'
+              )
+            "
+            autocomplete="username"
+            maxlength="30"
+          />
+
+          <div
+            class="mt-1 text-xs text-gray-500"
+          >
+            {{
+              translate(
+                "user.usernameHint",
+                "Use 3–30 letters, numbers, dots, underscores, or hyphens."
+              )
+            }}
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label
+            for="user-email"
+            class="mb-1 block text-sm font-medium"
+          >
+            {{ t("user.fields.email") }}
+          </label>
+
+          <InputText
+            id="user-email"
             v-model="form.email"
             type="email"
             class="w-full"
             :placeholder="
-              t(
-                'user.placeholders.email'
-              )
+              t('user.placeholders.email')
             "
             autocomplete="email"
           />
         </div>
 
+        <!-- Password -->
         <div>
           <label
-            class="
-              mb-1
-              block
-              text-sm
-              font-medium
-            "
+            for="user-password"
+            class="mb-1 block text-sm font-medium"
           >
-            {{
-              t(
-                "user.fields.password"
-              )
-            }}
+            {{ t("user.fields.password") }}
           </label>
 
           <Password
+            id="user-password"
             v-model="form.password"
             class="w-full"
             input-class="w-full"
@@ -1384,34 +1272,18 @@ onMounted(() => {
 
           <div
             v-if="isEditMode"
-            class="
-              mt-1
-              text-xs
-              text-gray-500
-            "
+            class="mt-1 text-xs text-gray-500"
           >
-            {{
-              t(
-                "user.passwordHint"
-              )
-            }}
+            {{ t("user.passwordHint") }}
           </div>
         </div>
 
+        <!-- Role -->
         <div>
           <label
-            class="
-              mb-1
-              block
-              text-sm
-              font-medium
-            "
+            class="mb-1 block text-sm font-medium"
           >
-            {{
-              t(
-                "user.fields.role"
-              )
-            }}
+            {{ t("user.fields.role") }}
           </label>
 
           <Select
@@ -1420,9 +1292,7 @@ onMounted(() => {
             optionLabel="label"
             optionValue="value"
             :placeholder="
-              t(
-                'user.placeholders.role'
-              )
+              t('user.placeholders.role')
             "
             class="w-full"
           />
@@ -1431,36 +1301,21 @@ onMounted(() => {
 
       <template #footer>
         <div
-          class="
-            grid
-            w-full
-            grid-cols-2
-            gap-2
-            sm:flex
-            sm:justify-end
-          "
+          class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end"
         >
           <Button
-            :label="
-              t('user.cancel')
-            "
+            :label="t('user.cancel')"
             severity="secondary"
             outlined
             :disabled="saving"
-            @click="
-              closeFormDialog
-            "
+            @click="closeFormDialog"
           />
 
           <Button
             :label="
               isEditMode
-                ? t(
-                    'user.update'
-                  )
-                : t(
-                    'user.create'
-                  )
+                ? t('user.update')
+                : t('user.create')
             "
             icon="pi pi-save"
             :loading="saving"
@@ -1471,84 +1326,56 @@ onMounted(() => {
     </Dialog>
 
     <!-- Delete confirmation -->
-
     <Dialog
       v-model:visible="
         deleteDialogVisible
       "
       modal
       :header="
-        t(
-          'user.dialogs.deleteTitle'
-        )
+        t('user.dialogs.deleteTitle')
       "
       :style="{
         width: '94vw',
-        maxWidth: '420px'
+        maxWidth: '420px',
       }"
       :closable="!deleting"
       :draggable="false"
     >
       <div>
-        <p>
+        <p class="font-semibold">
           {{
-            t(
-              "user.deleteQuestion",
-              {
-                name:
-                  selectedUser?.name ||
-                  "-"
-              }
+            translate(
+              "user.deleteUsernameQuestion",
+              `Delete user "${selectedUser?.username || selectedUser?.name || "-"}"?`
             )
           }}
         </p>
 
         <p
-          class="
-            mt-2
-            text-sm
-            text-gray-500
-          "
+          class="mt-2 text-sm text-gray-500"
         >
-          {{
-            t(
-              "user.deleteWarning"
-            )
-          }}
+          {{ t("user.deleteWarning") }}
         </p>
       </div>
 
       <template #footer>
         <div
-          class="
-            grid
-            w-full
-            grid-cols-2
-            gap-2
-          "
+          class="grid w-full grid-cols-2 gap-2"
         >
           <Button
-            :label="
-              t('user.cancel')
-            "
+            :label="t('user.cancel')"
             severity="secondary"
             outlined
             :disabled="deleting"
-            @click="
-              closeDeleteDialog
-            "
+            @click="closeDeleteDialog"
           />
 
           <Button
-            :label="
-              t('user.delete')
-            "
+            :label="t('user.delete')"
             icon="pi pi-trash"
             severity="danger"
             :loading="deleting"
-            @click="
-              confirmDeleteUser
-            "
+            @click="confirmDeleteUser"
           />
         </div>
       </template>
@@ -1561,6 +1388,10 @@ onMounted(() => {
   padding: 0.875rem;
 }
 
+:deep(.p-card-caption) {
+  margin-bottom: 0.875rem;
+}
+
 :deep(.p-inputtext),
 :deep(.p-select),
 :deep(.p-password),
@@ -1569,7 +1400,8 @@ onMounted(() => {
   min-height: 44px;
 }
 
-:deep(.p-password) {
+:deep(.p-password),
+:deep(.p-select) {
   width: 100%;
 }
 
@@ -1581,17 +1413,53 @@ onMounted(() => {
 </style>
 
 <style>
+.user-form-dialog {
+  display: flex;
+  max-height: 94vh;
+  flex-direction: column;
+}
+
+.user-form-dialog .p-dialog-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.user-form-dialog .p-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.user-form-dialog .p-dialog-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
 @media (max-width: 639px) {
   .user-form-dialog {
     width: 100vw !important;
+    height: 100dvh !important;
     max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
   }
 
-  .user-form-dialog
-    .p-dialog-content {
+  .user-form-dialog .p-dialog-header {
+    padding: 0.875rem;
+  }
+
+  .user-form-dialog .p-dialog-content {
+    padding: 0.75rem;
     overflow-y: auto;
+  }
+
+  .user-form-dialog .p-dialog-footer {
+    padding: 0.75rem;
+    padding-bottom: max(
+      0.75rem,
+      env(safe-area-inset-bottom)
+    );
   }
 }
 </style>
