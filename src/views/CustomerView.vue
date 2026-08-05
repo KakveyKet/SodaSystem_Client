@@ -25,7 +25,9 @@ import ToggleSwitch from "primevue/toggleswitch";
 
 import api from "../services/api";
 
-const { t } = useI18n();
+const {
+  t,
+} = useI18n();
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +43,7 @@ const deleting = ref(false);
 
 const formDialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
+
 const isEditMode = ref(false);
 
 const selectedCustomer = ref(null);
@@ -68,6 +71,7 @@ const createEmptyForm = () => ({
 
   username: "",
   email: "",
+
   password: "",
   confirmPassword: "",
 
@@ -81,7 +85,7 @@ const createEmptyForm = () => ({
 });
 
 const form = ref(
-  createEmptyForm()
+  createEmptyForm(),
 );
 
 /*
@@ -93,13 +97,13 @@ const form = ref(
 const statusOptions = computed(() => [
   {
     label: t(
-      "customer.status.active"
+      "customer.status.active",
     ),
     value: true,
   },
   {
     label: t(
-      "customer.status.inactive"
+      "customer.status.inactive",
     ),
     value: false,
   },
@@ -107,18 +111,18 @@ const statusOptions = computed(() => [
 
 const totalPages = computed(() => {
   const total = Number(
-    totalRecords.value || 0
+    totalRecords.value || 0,
   );
 
   const pageSize = Number(
-    limit.value || 10
+    limit.value || 10,
   );
 
   return Math.max(
     Math.ceil(
-      total / pageSize
+      total / pageSize,
     ),
-    1
+    1,
   );
 });
 
@@ -133,34 +137,34 @@ const passwordRequired = computed(() => {
 const passwordHelpText = computed(() => {
   if (!isEditMode.value) {
     return t(
-      "customer.login.createPasswordHelp"
+      "customer.login.createPasswordHelp",
     );
   }
 
   if (!form.value.hasLoginAccount) {
     return t(
-      "customer.login.legacyPasswordHelp"
+      "customer.login.legacyPasswordHelp",
     );
   }
 
   return t(
-    "customer.login.existingPasswordHelp"
+    "customer.login.existingPasswordHelp",
   );
 });
 
 /*
 |--------------------------------------------------------------------------
-| Response helpers
+| API response helpers
 |--------------------------------------------------------------------------
 */
 
 const extractArrayData = (
   response,
-  keys = []
+  keys = [],
 ) => {
   if (
     Array.isArray(
-      response.data?.data
+      response.data?.data,
     )
   ) {
     return response.data.data;
@@ -169,7 +173,7 @@ const extractArrayData = (
   for (const key of keys) {
     if (
       Array.isArray(
-        response.data?.data?.[key]
+        response.data?.data?.[key],
       )
     ) {
       return response.data.data[key];
@@ -177,7 +181,7 @@ const extractArrayData = (
 
     if (
       Array.isArray(
-        response.data?.[key]
+        response.data?.[key],
       )
     ) {
       return response.data[key];
@@ -189,7 +193,7 @@ const extractArrayData = (
 
 const extractTotalRecords = (
   response,
-  fallback = 0
+  fallback = 0,
 ) => {
   return (
     response.data?.pagination?.total ??
@@ -202,7 +206,7 @@ const extractTotalRecords = (
 
 const getApiErrorMessage = (
   error,
-  fallbackKey
+  fallbackKey,
 ) => {
   return (
     error.response?.data?.message ||
@@ -217,7 +221,7 @@ const getApiErrorMessage = (
 */
 
 const getCustomerId = (
-  customer
+  customer,
 ) => {
   return (
     customer?.id ||
@@ -227,12 +231,11 @@ const getCustomerId = (
 };
 
 const getLinkedUser = (
-  customer
+  customer,
 ) => {
   if (
     customer?.userId &&
-    typeof customer.userId ===
-      "object"
+    typeof customer.userId === "object"
   ) {
     return customer.userId;
   }
@@ -241,7 +244,7 @@ const getLinkedUser = (
 };
 
 const getLinkedUserId = (
-  customer
+  customer,
 ) => {
   const linkedUser =
     getLinkedUser(customer);
@@ -255,15 +258,15 @@ const getLinkedUserId = (
 };
 
 const customerHasLogin = (
-  customer
+  customer,
 ) => {
   return Boolean(
-    getLinkedUserId(customer)
+    getLinkedUserId(customer),
   );
 };
 
 const getCustomerUsername = (
-  customer
+  customer,
 ) => {
   const linkedUser =
     getLinkedUser(customer);
@@ -276,7 +279,7 @@ const getCustomerUsername = (
 };
 
 const getCustomerEmail = (
-  customer
+  customer,
 ) => {
   const linkedUser =
     getLinkedUser(customer);
@@ -289,33 +292,33 @@ const getCustomerEmail = (
 };
 
 const formatBalance = (
-  value
+  value,
 ) => {
   return Number(
-    value || 0
+    value || 0,
   ).toLocaleString(
     "en-US",
     {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }
+    },
   );
 };
 
 const getStatusLabel = (
-  status
+  status,
 ) => {
   return status !== false
     ? t(
-        "customer.status.active"
+        "customer.status.active",
       )
     : t(
-        "customer.status.inactive"
+        "customer.status.inactive",
       );
 };
 
 const getStatusSeverity = (
-  status
+  status,
 ) => {
   return status !== false
     ? "success"
@@ -324,7 +327,7 @@ const getStatusSeverity = (
 
 /*
 |--------------------------------------------------------------------------
-| Message helpers
+| Message and form helpers
 |--------------------------------------------------------------------------
 */
 
@@ -336,6 +339,19 @@ const clearMessages = () => {
 const resetForm = () => {
   form.value =
     createEmptyForm();
+};
+
+const handleFormDialogHide = () => {
+  if (!saving.value) {
+    resetForm();
+  }
+};
+
+const handleDeleteDialogHide = () => {
+  if (!deleting.value) {
+    selectedCustomer.value =
+      null;
+  }
 };
 
 /*
@@ -363,8 +379,7 @@ const fetchCustomers = async () => {
     }
 
     if (
-      filterStatus.value !==
-      null
+      filterStatus.value !== null
     ) {
       params.status =
         filterStatus.value;
@@ -375,7 +390,7 @@ const fetchCustomers = async () => {
         "/customers",
         {
           params,
-        }
+        },
       );
 
     customers.value =
@@ -385,20 +400,20 @@ const fetchCustomers = async () => {
           "customers",
           "items",
           "results",
-        ]
+        ],
       );
 
     totalRecords.value =
       Number(
         extractTotalRecords(
           response,
-          customers.value.length
-        )
+          customers.value.length,
+        ),
       );
   } catch (error) {
     console.error(
       "Fetch customers error:",
-      error
+      error,
     );
 
     customers.value = [];
@@ -407,7 +422,7 @@ const fetchCustomers = async () => {
     errorMessage.value =
       getApiErrorMessage(
         error,
-        "customer.errors.fetch"
+        "customer.errors.fetch",
       );
   } finally {
     loading.value = false;
@@ -441,7 +456,7 @@ const clearFilter = () => {
 */
 
 const onPageChange = (
-  event
+  event,
 ) => {
   page.value =
     event.page + 1;
@@ -468,8 +483,7 @@ const goToPreviousPage = () => {
 const goToNextPage = () => {
   if (
     loading.value ||
-    page.value >=
-      totalPages.value
+    page.value >= totalPages.value
   ) {
     return;
   }
@@ -481,7 +495,7 @@ const goToNextPage = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Create customer
+| Create customer dialog
 |--------------------------------------------------------------------------
 */
 
@@ -495,12 +509,12 @@ const openCreateDialog = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Edit customer
+| Edit customer dialog
 |--------------------------------------------------------------------------
 */
 
 const openEditDialog = (
-  customer
+  customer,
 ) => {
   clearMessages();
 
@@ -512,17 +526,13 @@ const openEditDialog = (
 
   form.value = {
     id:
-      getCustomerId(
-        customer
-      ),
+      getCustomerId(customer),
 
     userId:
       linkedUserId,
 
     hasLoginAccount:
-      Boolean(
-        linkedUserId
-      ),
+      Boolean(linkedUserId),
 
     username:
       linkedUser?.username ||
@@ -555,13 +565,11 @@ const openEditDialog = (
 
     balance:
       Number(
-        customer?.balance ??
-        0
+        customer?.balance ?? 0,
       ),
 
     status:
-      customer?.status !==
-      false,
+      customer?.status !== false,
   };
 
   isEditMode.value = true;
@@ -574,13 +582,11 @@ const closeFormDialog = () => {
   }
 
   formDialogVisible.value = false;
-
-  resetForm();
 };
 
 /*
 |--------------------------------------------------------------------------
-| Form validation
+| Validation
 |--------------------------------------------------------------------------
 */
 
@@ -595,38 +601,34 @@ const validateForm = () => {
 
   const password =
     String(
-      form.value.password ||
-      ""
+      form.value.password || "",
     );
 
   const confirmPassword =
     String(
-      form.value.confirmPassword ||
-      ""
+      form.value.confirmPassword || "",
     );
 
   if (!username) {
     return t(
-      "customer.errors.usernameRequired"
+      "customer.errors.usernameRequired",
     );
   }
 
-  if (
-    username.length > 100
-  ) {
+  if (username.length > 100) {
     return t(
-      "customer.errors.usernameTooLong"
+      "customer.errors.usernameTooLong",
     );
   }
 
   if (
     email &&
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-      email
+      email,
     )
   ) {
     return t(
-      "customer.errors.invalidEmail"
+      "customer.errors.invalidEmail",
     );
   }
 
@@ -634,7 +636,7 @@ const validateForm = () => {
     !form.value.branchId.trim()
   ) {
     return t(
-      "customer.errors.branchRequired"
+      "customer.errors.branchRequired",
     );
   }
 
@@ -643,7 +645,7 @@ const validateForm = () => {
     !password
   ) {
     return t(
-      "customer.errors.passwordRequired"
+      "customer.errors.passwordRequired",
     );
   }
 
@@ -652,7 +654,7 @@ const validateForm = () => {
     password.length < 6
   ) {
     return t(
-      "customer.errors.passwordTooShort"
+      "customer.errors.passwordTooShort",
     );
   }
 
@@ -661,26 +663,26 @@ const validateForm = () => {
     confirmPassword
   ) {
     return t(
-      "customer.errors.passwordMismatch"
+      "customer.errors.passwordMismatch",
     );
   }
 
   const balance =
     Number(
-      form.value.balance
+      form.value.balance,
     );
 
   if (
     !Number.isFinite(balance)
   ) {
     return t(
-      "customer.errors.invalidBalance"
+      "customer.errors.invalidBalance",
     );
   }
 
   if (balance < 0) {
     return t(
-      "customer.errors.balanceNegative"
+      "customer.errors.balanceNegative",
     );
   }
 
@@ -689,18 +691,14 @@ const validateForm = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Build request payload
+| Build API payload
 |--------------------------------------------------------------------------
-|
-| Percentages are not sent by this form.
-|
 */
 
 const buildPayload = () => {
   const payload = {
     username:
-      form.value.username
-        .trim(),
+      form.value.username.trim(),
 
     email:
       form.value.email
@@ -708,35 +706,30 @@ const buildPayload = () => {
         .toLowerCase(),
 
     branchId:
-      form.value.branchId
-        .trim(),
+      form.value.branchId.trim(),
 
     phoneNumber:
-      form.value.phoneNumber
-        .trim(),
+      form.value.phoneNumber.trim(),
 
     address:
-      form.value.address
-        .trim(),
+      form.value.address.trim(),
 
     description:
-      form.value.description
-        .trim(),
+      form.value.description.trim(),
 
     balance:
       Number(
-        form.value.balance ||
-        0
+        form.value.balance || 0,
       ),
 
     status:
       Boolean(
-        form.value.status
+        form.value.status,
       ),
   };
 
   /*
-   * On edit, an empty password keeps the current password.
+   * Empty password during edit keeps the current password.
    */
   if (form.value.password) {
     payload.password =
@@ -776,7 +769,7 @@ const saveCustomer = async () => {
       if (!form.value.id) {
         errorMessage.value =
           t(
-            "customer.errors.idMissing"
+            "customer.errors.idMissing",
           );
 
         return;
@@ -784,40 +777,38 @@ const saveCustomer = async () => {
 
       await api.put(
         `/customers/${form.value.id}`,
-        payload
+        payload,
       );
 
       successMessage.value =
         t(
-          "customer.messages.updated"
+          "customer.messages.updated",
         );
     } else {
       await api.post(
         "/customers",
-        payload
+        payload,
       );
 
       successMessage.value =
         t(
-          "customer.messages.created"
+          "customer.messages.created",
         );
     }
 
     formDialogVisible.value = false;
 
-    resetForm();
-
     await fetchCustomers();
   } catch (error) {
     console.error(
       "Save customer error:",
-      error
+      error,
     );
 
     errorMessage.value =
       getApiErrorMessage(
         error,
-        "customer.errors.save"
+        "customer.errors.save",
       );
   } finally {
     saving.value = false;
@@ -831,7 +822,7 @@ const saveCustomer = async () => {
 */
 
 const openDeleteDialog = (
-  customer
+  customer,
 ) => {
   clearMessages();
 
@@ -847,73 +838,69 @@ const closeDeleteDialog = () => {
   }
 
   deleteDialogVisible.value = false;
-  selectedCustomer.value = null;
 };
 
-const confirmDeleteCustomer = async () => {
-  if (
-    !selectedCustomer.value
-  ) {
-    return;
-  }
-
-  try {
-    deleting.value = true;
-    errorMessage.value = "";
-    successMessage.value = "";
-
-    const customerId =
-      getCustomerId(
-        selectedCustomer.value
-      );
-
-    if (!customerId) {
-      errorMessage.value =
-        t(
-          "customer.errors.idMissing"
-        );
-
+const confirmDeleteCustomer =
+  async () => {
+    if (!selectedCustomer.value) {
       return;
     }
 
-    await api.delete(
-      `/customers/${customerId}`
-    );
+    try {
+      deleting.value = true;
+      errorMessage.value = "";
+      successMessage.value = "";
 
-    successMessage.value =
-      t(
-        "customer.messages.deleted"
+      const customerId =
+        getCustomerId(
+          selectedCustomer.value,
+        );
+
+      if (!customerId) {
+        errorMessage.value =
+          t(
+            "customer.errors.idMissing",
+          );
+
+        return;
+      }
+
+      await api.delete(
+        `/customers/${customerId}`,
       );
 
-    deleteDialogVisible.value = false;
-    selectedCustomer.value = null;
+      successMessage.value =
+        t(
+          "customer.messages.deleted",
+        );
 
-    if (
-      customers.value.length ===
-        1 &&
-      page.value > 1
-    ) {
-      page.value -= 1;
-    }
+      deleteDialogVisible.value = false;
 
-    await fetchCustomers();
-  } catch (error) {
-    console.error(
-      "Delete customer error:",
-      error
-    );
+      if (
+        customers.value.length === 1 &&
+        page.value > 1
+      ) {
+        page.value -= 1;
+      }
 
-    errorMessage.value =
-      getApiErrorMessage(
+      await fetchCustomers();
+    } catch (error) {
+      console.error(
+        "Delete customer error:",
         error,
-        "customer.errors.delete"
       );
 
-    deleteDialogVisible.value = false;
-  } finally {
-    deleting.value = false;
-  }
-};
+      errorMessage.value =
+        getApiErrorMessage(
+          error,
+          "customer.errors.delete",
+        );
+
+      deleteDialogVisible.value = false;
+    } finally {
+      deleting.value = false;
+    }
+  };
 
 /*
 |--------------------------------------------------------------------------
@@ -933,7 +920,7 @@ onMounted(() => {
     <Card>
       <template #title>
         <div
-          class="flex items-center justify-between gap-3"
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <div
             class="flex min-w-0 items-center gap-3"
@@ -951,20 +938,21 @@ onMounted(() => {
             >
               {{
                 t(
-                  "customer.title"
+                  "customer.title",
                 )
               }}
             </h1>
           </div>
 
           <Button
+            type="button"
             :label="
               t(
-                'customer.add'
+                'customer.add',
               )
             "
             icon="pi pi-plus"
-            size="small"
+            class="w-full sm:w-auto"
             @click="
               openCreateDialog
             "
@@ -974,7 +962,7 @@ onMounted(() => {
 
       <template #content>
         <Message
-          v-if="errorMessage"
+          v-if="errorMessage && !formDialogVisible"
           severity="error"
           class="mb-3"
           closable
@@ -1000,14 +988,14 @@ onMounted(() => {
         <!-- Filters -->
 
         <div
-          class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px_auto]"
+          class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"
         >
           <InputText
             v-model="search"
             class="w-full"
             :placeholder="
               t(
-                'customer.searchPlaceholder'
+                'customer.searchPlaceholder',
               )
             "
             @keyup.enter="
@@ -1016,17 +1004,13 @@ onMounted(() => {
           />
 
           <Select
-            v-model="
-              filterStatus
-            "
-            :options="
-              statusOptions
-            "
+            v-model="filterStatus"
+            :options="statusOptions"
             optionLabel="label"
             optionValue="value"
             :placeholder="
               t(
-                'customer.allStatuses'
+                'customer.allStatuses',
               )
             "
             class="w-full"
@@ -1037,9 +1021,10 @@ onMounted(() => {
             class="grid grid-cols-2 gap-2 sm:flex"
           >
             <Button
+              type="button"
               :label="
                 t(
-                  'customer.search'
+                  'customer.search',
                 )
               "
               icon="pi pi-search"
@@ -1049,17 +1034,18 @@ onMounted(() => {
             />
 
             <Button
+              type="button"
               icon="pi pi-refresh"
               severity="secondary"
               outlined
               :aria-label="
                 t(
-                  'customer.reset'
+                  'customer.reset',
                 )
               "
               :title="
                 t(
-                  'customer.reset'
+                  'customer.reset',
                 )
               "
               @click="
@@ -1085,12 +1071,10 @@ onMounted(() => {
 
           <template v-else>
             <article
-              v-for="
-                customer in customers
-              "
+              v-for="customer in customers"
               :key="
                 getCustomerId(
-                  customer
+                  customer,
                 )
               "
               class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
@@ -1106,7 +1090,7 @@ onMounted(() => {
                   >
                     {{
                       getCustomerUsername(
-                        customer
+                        customer,
                       ) || "-"
                     }}
                   </h2>
@@ -1116,10 +1100,10 @@ onMounted(() => {
                   >
                     {{
                       getCustomerEmail(
-                        customer
+                        customer,
                       ) ||
                       t(
-                        "customer.noEmail"
+                        "customer.noEmail",
                       )
                     }}
                   </p>
@@ -1137,12 +1121,12 @@ onMounted(() => {
                 <Tag
                   :value="
                     getStatusLabel(
-                      customer.status
+                      customer.status,
                     )
                   "
                   :severity="
                     getStatusSeverity(
-                      customer.status
+                      customer.status,
                     )
                   "
                 />
@@ -1154,7 +1138,7 @@ onMounted(() => {
                 <Tag
                   :value="
                     t(
-                      'customer.role.customer'
+                      'customer.role.customer',
                     )
                   "
                   severity="info"
@@ -1163,18 +1147,18 @@ onMounted(() => {
                 <Tag
                   :value="
                     customerHasLogin(
-                      customer
+                      customer,
                     )
                       ? t(
-                          'customer.login.readyLong'
+                          'customer.login.readyLong',
                         )
                       : t(
-                          'customer.login.missingLong'
+                          'customer.login.missingLong',
                         )
                   "
                   :severity="
                     customerHasLogin(
-                      customer
+                      customer,
                     )
                       ? 'success'
                       : 'warn'
@@ -1193,7 +1177,7 @@ onMounted(() => {
                   >
                     {{
                       t(
-                        "customer.fields.phone"
+                        "customer.fields.phone",
                       )
                     }}
                   </div>
@@ -1216,7 +1200,7 @@ onMounted(() => {
                   >
                     {{
                       t(
-                        "customer.fields.balance"
+                        "customer.fields.balance",
                       )
                     }}
                   </div>
@@ -1226,7 +1210,7 @@ onMounted(() => {
                   >
                     {{
                       formatBalance(
-                        customer.balance
+                        customer.balance,
                       )
                     }}
                   </div>
@@ -1237,9 +1221,10 @@ onMounted(() => {
                 class="mt-3 grid grid-cols-2 gap-2"
               >
                 <Button
+                  type="button"
                   :label="
                     t(
-                      'customer.edit'
+                      'customer.edit',
                     )
                   "
                   icon="pi pi-pencil"
@@ -1247,15 +1232,16 @@ onMounted(() => {
                   outlined
                   @click="
                     openEditDialog(
-                      customer
+                      customer,
                     )
                   "
                 />
 
                 <Button
+                  type="button"
                   :label="
                     t(
-                      'customer.delete'
+                      'customer.delete',
                     )
                   "
                   icon="pi pi-trash"
@@ -1263,7 +1249,7 @@ onMounted(() => {
                   outlined
                   @click="
                     openDeleteDialog(
-                      customer
+                      customer,
                     )
                   "
                 />
@@ -1271,26 +1257,23 @@ onMounted(() => {
             </article>
 
             <div
-              v-if="
-                !customers.length
-              "
+              v-if="!customers.length"
               class="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-500"
             >
               {{
                 t(
-                  "customer.noCustomers"
+                  "customer.noCustomers",
                 )
               }}
             </div>
           </template>
 
           <div
-            v-if="
-              totalRecords > 0
-            "
+            v-if="totalRecords > 0"
             class="flex items-center justify-between rounded-xl border border-gray-200 p-2"
           >
             <Button
+              type="button"
               icon="pi pi-chevron-left"
               severity="secondary"
               text
@@ -1314,19 +1297,19 @@ onMounted(() => {
                     page,
                     total:
                       totalPages,
-                  }
+                  },
                 )
               }}
             </span>
 
             <Button
+              type="button"
               icon="pi pi-chevron-right"
               severity="secondary"
               text
               rounded
               :disabled="
-                page >=
-                  totalPages ||
+                page >= totalPages ||
                 loading
               "
               @click="
@@ -1361,7 +1344,7 @@ onMounted(() => {
                 5,
                 10,
                 20,
-                50
+                50,
               ]
             "
             tableStyle="min-width: 1100px"
@@ -1372,20 +1355,18 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.username'
+                  'customer.columns.username',
                 )
               "
               style="min-width: 160px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 <span
                   class="font-semibold"
                 >
                   {{
                     getCustomerUsername(
-                      data
+                      data,
                     ) || "-"
                   }}
                 </span>
@@ -1395,20 +1376,18 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.email'
+                  'customer.columns.email',
                 )
               "
               style="min-width: 210px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 {{
                   getCustomerEmail(
-                    data
+                    data,
                   ) ||
                   t(
-                    "customer.noEmail"
+                    "customer.noEmail",
                   )
                 }}
               </template>
@@ -1417,7 +1396,7 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.role'
+                  'customer.columns.role',
                 )
               "
               style="min-width: 110px"
@@ -1426,7 +1405,7 @@ onMounted(() => {
                 <Tag
                   :value="
                     t(
-                      'customer.role.customer'
+                      'customer.role.customer',
                     )
                   "
                   severity="info"
@@ -1437,29 +1416,27 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.login'
+                  'customer.columns.login',
                 )
               "
               style="min-width: 130px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 <Tag
                   :value="
                     customerHasLogin(
-                      data
+                      data,
                     )
                       ? t(
-                          'customer.login.ready'
+                          'customer.login.ready',
                         )
                       : t(
-                          'customer.login.missing'
+                          'customer.login.missing',
                         )
                   "
                   :severity="
                     customerHasLogin(
-                      data
+                      data,
                     )
                       ? 'success'
                       : 'warn'
@@ -1472,14 +1449,12 @@ onMounted(() => {
               field="branchId"
               :header="
                 t(
-                  'customer.columns.branch'
+                  'customer.columns.branch',
                 )
               "
               style="min-width: 130px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 {{
                   data.branchId ||
                   "-"
@@ -1491,14 +1466,12 @@ onMounted(() => {
               field="phoneNumber"
               :header="
                 t(
-                  'customer.columns.phone'
+                  'customer.columns.phone',
                 )
               "
               style="min-width: 150px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 {{
                   data.phoneNumber ||
                   "-"
@@ -1510,17 +1483,15 @@ onMounted(() => {
               field="balance"
               :header="
                 t(
-                  'customer.columns.balance'
+                  'customer.columns.balance',
                 )
               "
               style="min-width: 120px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 {{
                   formatBalance(
-                    data.balance
+                    data.balance,
                   )
                 }}
               </template>
@@ -1529,23 +1500,21 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.status'
+                  'customer.columns.status',
                 )
               "
               style="min-width: 110px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 <Tag
                   :value="
                     getStatusLabel(
-                      data.status
+                      data.status,
                     )
                   "
                   :severity="
                     getStatusSeverity(
-                      data.status
+                      data.status,
                     )
                   "
                 />
@@ -1555,47 +1524,47 @@ onMounted(() => {
             <Column
               :header="
                 t(
-                  'customer.columns.action'
+                  'customer.columns.action',
                 )
               "
               frozen
               alignFrozen="right"
               style="min-width: 120px"
             >
-              <template
-                #body="{ data }"
-              >
+              <template #body="{ data }">
                 <div
                   class="flex gap-2"
                 >
                   <Button
+                    type="button"
                     icon="pi pi-pencil"
                     size="small"
                     severity="info"
                     :title="
                       t(
-                        'customer.edit'
+                        'customer.edit',
                       )
                     "
                     @click="
                       openEditDialog(
-                        data
+                        data,
                       )
                     "
                   />
 
                   <Button
+                    type="button"
                     icon="pi pi-trash"
                     size="small"
                     severity="danger"
                     :title="
                       t(
-                        'customer.delete'
+                        'customer.delete',
                       )
                     "
                     @click="
                       openDeleteDialog(
-                        data
+                        data,
                       )
                     "
                   />
@@ -1609,7 +1578,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.noCustomers"
+                    "customer.noCustomers",
                   )
                 }}
               </div>
@@ -1619,31 +1588,46 @@ onMounted(() => {
       </template>
     </Card>
 
-    <!-- Create / Edit dialog -->
+    <!-- Create / Edit Customer Dialog -->
 
     <Dialog
       v-model:visible="
         formDialogVisible
       "
+      appendTo="body"
+      position="center"
       modal
+      :autoZIndex="true"
+      :baseZIndex="20000"
       :header="
         isEditMode
           ? t(
-              'customer.dialogs.editTitle'
+              'customer.dialogs.editTitle',
             )
           : t(
-              'customer.dialogs.addTitle'
+              'customer.dialogs.addTitle',
             )
       "
       :style="{
-        width: '95vw',
-        maxWidth: '720px',
+        width:
+          'calc(100vw - 24px)',
+        maxWidth:
+          '720px',
+        maxHeight:
+          'calc(100dvh - 24px)',
+      }"
+      :breakpoints="{
+        '640px': '100vw',
       }"
       :closable="!saving"
+      :closeOnEscape="!saving"
       :draggable="false"
       :dismissableMask="false"
       :blockScroll="true"
-      class="customer-form-dialog"
+      class="customer-form-modal"
+      @hide="
+        handleFormDialogHide
+      "
     >
       <div
         class="space-y-5"
@@ -1659,7 +1643,7 @@ onMounted(() => {
           {{ errorMessage }}
         </Message>
 
-        <!-- Customer login account -->
+        <!-- Login account -->
 
         <section
           class="rounded-xl border border-blue-200 bg-blue-50 p-4"
@@ -1667,13 +1651,15 @@ onMounted(() => {
           <div
             class="mb-4 flex items-start justify-between gap-3"
           >
-            <div>
+            <div
+              class="min-w-0"
+            >
               <h3
                 class="font-bold text-blue-900"
               >
                 {{
                   t(
-                    "customer.login.title"
+                    "customer.login.title",
                   )
                 }}
               </h3>
@@ -1683,7 +1669,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.login.description"
+                    "customer.login.description",
                   )
                 }}
               </p>
@@ -1692,7 +1678,7 @@ onMounted(() => {
             <Tag
               :value="
                 t(
-                  'customer.role.customer'
+                  'customer.role.customer',
                 )
               "
               severity="info"
@@ -1711,7 +1697,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.username"
+                    "customer.fields.username",
                   )
                 }}
 
@@ -1731,7 +1717,7 @@ onMounted(() => {
                 autocomplete="username"
                 :placeholder="
                   t(
-                    'customer.placeholders.username'
+                    'customer.placeholders.username',
                   )
                 "
               />
@@ -1746,7 +1732,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.email"
+                    "customer.fields.email",
                   )
                 }}
 
@@ -1755,7 +1741,7 @@ onMounted(() => {
                 >
                   ({{
                     t(
-                      "customer.login.emailOptional"
+                      "customer.login.emailOptional",
                     )
                   }})
                 </span>
@@ -1771,7 +1757,7 @@ onMounted(() => {
                 autocomplete="email"
                 :placeholder="
                   t(
-                    'customer.placeholders.email'
+                    'customer.placeholders.email',
                   )
                 "
               />
@@ -1786,7 +1772,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.password"
+                    "customer.fields.password",
                   )
                 }}
 
@@ -1811,10 +1797,10 @@ onMounted(() => {
                 :placeholder="
                   isEditMode
                     ? t(
-                        'customer.login.updatePasswordPlaceholder'
+                        'customer.login.updatePasswordPlaceholder',
                       )
                     : t(
-                        'customer.login.createPasswordPlaceholder'
+                        'customer.login.createPasswordPlaceholder',
                       )
                 "
                 toggleMask
@@ -1831,7 +1817,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.confirmPassword"
+                    "customer.fields.confirmPassword",
                   )
                 }}
 
@@ -1855,7 +1841,7 @@ onMounted(() => {
                 autocomplete="new-password"
                 :placeholder="
                   t(
-                    'customer.login.confirmPasswordPlaceholder'
+                    'customer.login.confirmPasswordPlaceholder',
                   )
                 "
                 toggleMask
@@ -1874,14 +1860,14 @@ onMounted(() => {
         <!-- Customer information -->
 
         <section
-          class="rounded-xl border border-gray-200 p-4"
+          class="rounded-xl border border-gray-200 bg-white p-4"
         >
           <h3
             class="mb-4 font-bold text-gray-900"
           >
             {{
               t(
-                "customer.sections.customerInformation"
+                "customer.sections.customerInformation",
               )
             }}
           </h3>
@@ -1898,7 +1884,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.branch"
+                    "customer.fields.branch",
                   )
                 }}
 
@@ -1917,7 +1903,7 @@ onMounted(() => {
                 class="w-full"
                 :placeholder="
                   t(
-                    'customer.placeholders.branch'
+                    'customer.placeholders.branch',
                   )
                 "
               />
@@ -1932,7 +1918,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.phone"
+                    "customer.fields.phone",
                   )
                 }}
               </label>
@@ -1946,7 +1932,7 @@ onMounted(() => {
                 inputmode="tel"
                 :placeholder="
                   t(
-                    'customer.placeholders.phone'
+                    'customer.placeholders.phone',
                   )
                 "
               />
@@ -1961,7 +1947,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.balance"
+                    "customer.fields.balance",
                   )
                 }}
               </label>
@@ -1982,7 +1968,7 @@ onMounted(() => {
             <!-- Status -->
 
             <div
-              class="flex items-center justify-between rounded-xl border border-gray-200 p-3"
+              class="flex min-h-20 items-center justify-between rounded-xl border border-gray-200 p-3"
             >
               <div>
                 <div
@@ -1990,7 +1976,7 @@ onMounted(() => {
                 >
                   {{
                     t(
-                      "customer.fields.status"
+                      "customer.fields.status",
                     )
                   }}
                 </div>
@@ -2000,7 +1986,7 @@ onMounted(() => {
                 >
                   {{
                     getStatusLabel(
-                      form.status
+                      form.status,
                     )
                   }}
                 </div>
@@ -2024,7 +2010,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.address"
+                    "customer.fields.address",
                   )
                 }}
               </label>
@@ -2039,7 +2025,7 @@ onMounted(() => {
                 autoResize
                 :placeholder="
                   t(
-                    'customer.placeholders.address'
+                    'customer.placeholders.address',
                   )
                 "
               />
@@ -2056,7 +2042,7 @@ onMounted(() => {
               >
                 {{
                   t(
-                    "customer.fields.description"
+                    "customer.fields.description",
                   )
                 }}
               </label>
@@ -2071,7 +2057,7 @@ onMounted(() => {
                 autoResize
                 :placeholder="
                   t(
-                    'customer.placeholders.description'
+                    'customer.placeholders.description',
                   )
                 "
               />
@@ -2085,9 +2071,10 @@ onMounted(() => {
           class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end"
         >
           <Button
+            type="button"
             :label="
               t(
-                'customer.cancel'
+                'customer.cancel',
               )
             "
             severity="secondary"
@@ -2099,13 +2086,14 @@ onMounted(() => {
           />
 
           <Button
+            type="button"
             :label="
               isEditMode
                 ? t(
-                    'customer.update'
+                    'customer.update',
                   )
                 : t(
-                    'customer.create'
+                    'customer.create',
                   )
             "
             icon="pi pi-save"
@@ -2118,24 +2106,37 @@ onMounted(() => {
       </template>
     </Dialog>
 
-    <!-- Delete dialog -->
+    <!-- Delete Customer Dialog -->
 
     <Dialog
       v-model:visible="
         deleteDialogVisible
       "
+      appendTo="body"
+      position="center"
       modal
+      :autoZIndex="true"
+      :baseZIndex="20000"
       :header="
         t(
-          'customer.dialogs.deleteTitle'
+          'customer.dialogs.deleteTitle',
         )
       "
       :style="{
-        width: '94vw',
-        maxWidth: '420px',
+        width:
+          'calc(100vw - 24px)',
+        maxWidth:
+          '420px',
       }"
       :closable="!deleting"
+      :closeOnEscape="!deleting"
       :draggable="false"
+      :dismissableMask="false"
+      :blockScroll="true"
+      class="customer-delete-modal"
+      @hide="
+        handleDeleteDialogHide
+      "
     >
       <p
         class="font-semibold"
@@ -2146,10 +2147,10 @@ onMounted(() => {
             {
               name:
                 getCustomerUsername(
-                  selectedCustomer
+                  selectedCustomer,
                 ) ||
                 "-",
-            }
+            },
           )
         }}
       </p>
@@ -2159,7 +2160,7 @@ onMounted(() => {
       >
         {{
           t(
-            "customer.deleteLoginNote"
+            "customer.deleteLoginNote",
           )
         }}
       </p>
@@ -2169,9 +2170,10 @@ onMounted(() => {
           class="grid w-full grid-cols-2 gap-2"
         >
           <Button
+            type="button"
             :label="
               t(
-                'customer.cancel'
+                'customer.cancel',
               )
             "
             severity="secondary"
@@ -2183,9 +2185,10 @@ onMounted(() => {
           />
 
           <Button
+            type="button"
             :label="
               t(
-                'customer.delete'
+                'customer.delete',
               )
             "
             icon="pi pi-trash"
@@ -2231,53 +2234,124 @@ onMounted(() => {
 </style>
 
 <style>
-.customer-form-dialog {
-  display: flex;
-  max-height: 94vh;
+/*
+|--------------------------------------------------------------------------
+| PrimeVue modal mask
+|--------------------------------------------------------------------------
+*/
+
+.p-dialog-mask {
+  z-index: 20000 !important;
+}
+
+.p-dialog-mask .p-dialog {
+  z-index: 20001 !important;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Customer create/edit modal
+|--------------------------------------------------------------------------
+*/
+
+.customer-form-modal.p-dialog {
+  display: flex !important;
+  max-height: calc(100dvh - 24px) !important;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 25px 50px -12px
+      rgb(0 0 0 / 0.3);
 }
 
-.customer-form-dialog
+.customer-form-modal
   .p-dialog-header {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
-.customer-form-dialog
+.customer-form-modal
   .p-dialog-content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
 }
 
-.customer-form-dialog
+.customer-form-modal
   .p-dialog-footer {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  padding: 1rem 1.25rem;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Delete modal
+|--------------------------------------------------------------------------
+*/
+
+.customer-delete-modal.p-dialog {
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 25px 50px -12px
+      rgb(0 0 0 / 0.3);
+}
+
+.customer-delete-modal
+  .p-dialog-header {
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.customer-delete-modal
+  .p-dialog-content {
+  background: #ffffff;
+}
+
+.customer-delete-modal
+  .p-dialog-footer {
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Mobile modal
+|--------------------------------------------------------------------------
+*/
+
 @media (max-width: 639px) {
-  .customer-form-dialog {
+  .customer-form-modal.p-dialog {
     width: 100vw !important;
     height: 100dvh !important;
+    max-width: none !important;
     max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
   }
 
-  .customer-form-dialog
+  .customer-form-modal
     .p-dialog-header {
     padding: 0.875rem;
   }
 
-  .customer-form-dialog
+  .customer-form-modal
     .p-dialog-content {
-    overflow-y: auto;
-    padding: 0.75rem;
+    padding: 0.875rem;
   }
 
-  .customer-form-dialog
+  .customer-form-modal
     .p-dialog-footer {
     padding: 0.75rem;
     padding-bottom: max(
