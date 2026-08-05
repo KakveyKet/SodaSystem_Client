@@ -203,14 +203,25 @@ export default {
       confirmPassword: "Confirm password",
     },
 
-    placeholders: {
-      username: "Enter customer username",
-      email: "customer@example.com",
-      branch: "Enter branch",
-      phone: "Enter phone number",
-      address: "Enter customer address",
-      description: "Enter customer description",
-    },
+placeholders: {
+  username:
+    "Enter customer username",
+
+  email:
+    "customer{'@'}example.com",
+
+  branch:
+    "Enter branch",
+
+  phone:
+    "Enter phone number",
+
+  address:
+    "Enter customer address",
+
+  description:
+    "Enter customer description",
+},
 
     columns: {
       username: "Username",

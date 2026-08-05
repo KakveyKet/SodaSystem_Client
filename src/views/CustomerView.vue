@@ -25,9 +25,20 @@ import ToggleSwitch from "primevue/toggleswitch";
 
 import api from "../services/api";
 
-const {
-  t,
-} = useI18n();
+const { t } = useI18n();
+
+/*
+|--------------------------------------------------------------------------
+| Constants
+|--------------------------------------------------------------------------
+|
+| Keep the email example outside Vue i18n because Vue i18n treats @ as
+| linked-message syntax.
+|
+*/
+
+const customerEmailPlaceholder =
+  "customer@example.com";
 
 /*
 |--------------------------------------------------------------------------
@@ -45,7 +56,6 @@ const formDialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
 
 const isEditMode = ref(false);
-
 const selectedCustomer = ref(null);
 
 const errorMessage = ref("");
@@ -71,7 +81,6 @@ const createEmptyForm = () => ({
 
   username: "",
   email: "",
-
   password: "",
   confirmPassword: "",
 
@@ -235,7 +244,8 @@ const getLinkedUser = (
 ) => {
   if (
     customer?.userId &&
-    typeof customer.userId === "object"
+    typeof customer.userId ===
+      "object"
   ) {
     return customer.userId;
   }
@@ -327,7 +337,7 @@ const getStatusSeverity = (
 
 /*
 |--------------------------------------------------------------------------
-| Message and form helpers
+| Form and message helpers
 |--------------------------------------------------------------------------
 */
 
@@ -379,7 +389,8 @@ const fetchCustomers = async () => {
     }
 
     if (
-      filterStatus.value !== null
+      filterStatus.value !==
+      null
     ) {
       params.status =
         filterStatus.value;
@@ -483,7 +494,8 @@ const goToPreviousPage = () => {
 const goToNextPage = () => {
   if (
     loading.value ||
-    page.value >= totalPages.value
+    page.value >=
+      totalPages.value
   ) {
     return;
   }
@@ -495,7 +507,7 @@ const goToNextPage = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Create customer dialog
+| Create dialog
 |--------------------------------------------------------------------------
 */
 
@@ -509,7 +521,7 @@ const openCreateDialog = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Edit customer dialog
+| Edit dialog
 |--------------------------------------------------------------------------
 */
 
@@ -615,7 +627,9 @@ const validateForm = () => {
     );
   }
 
-  if (username.length > 100) {
+  if (
+    username.length > 100
+  ) {
     return t(
       "customer.errors.usernameTooLong",
     );
@@ -691,7 +705,7 @@ const validateForm = () => {
 
 /*
 |--------------------------------------------------------------------------
-| Build API payload
+| Build request payload
 |--------------------------------------------------------------------------
 */
 
@@ -700,6 +714,9 @@ const buildPayload = () => {
     username:
       form.value.username.trim(),
 
+    /*
+     * Blank email is allowed.
+     */
     email:
       form.value.email
         .trim()
@@ -729,7 +746,7 @@ const buildPayload = () => {
   };
 
   /*
-   * Empty password during edit keeps the current password.
+   * On edit, an empty password keeps the existing password.
    */
   if (form.value.password) {
     payload.password =
@@ -874,10 +891,12 @@ const confirmDeleteCustomer =
           "customer.messages.deleted",
         );
 
-      deleteDialogVisible.value = false;
+      deleteDialogVisible.value =
+        false;
 
       if (
-        customers.value.length === 1 &&
+        customers.value.length ===
+          1 &&
         page.value > 1
       ) {
         page.value -= 1;
@@ -896,7 +915,8 @@ const confirmDeleteCustomer =
           "customer.errors.delete",
         );
 
-      deleteDialogVisible.value = false;
+      deleteDialogVisible.value =
+        false;
     } finally {
       deleting.value = false;
     }
@@ -962,7 +982,10 @@ onMounted(() => {
 
       <template #content>
         <Message
-          v-if="errorMessage && !formDialogVisible"
+          v-if="
+            errorMessage &&
+            !formDialogVisible
+          "
           severity="error"
           class="mb-3"
           closable
@@ -1055,7 +1078,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Mobile customer cards -->
+        <!-- Mobile customers -->
 
         <section
           class="space-y-3 md:hidden"
@@ -1071,7 +1094,9 @@ onMounted(() => {
 
           <template v-else>
             <article
-              v-for="customer in customers"
+              v-for="
+                customer in customers
+              "
               :key="
                 getCustomerId(
                   customer,
@@ -1257,7 +1282,9 @@ onMounted(() => {
             </article>
 
             <div
-              v-if="!customers.length"
+              v-if="
+                !customers.length
+              "
               class="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-500"
             >
               {{
@@ -1269,7 +1296,9 @@ onMounted(() => {
           </template>
 
           <div
-            v-if="totalRecords > 0"
+            v-if="
+              totalRecords > 0
+            "
             class="flex items-center justify-between rounded-xl border border-gray-200 p-2"
           >
             <Button
@@ -1319,7 +1348,7 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- Desktop customer table -->
+        <!-- Desktop table -->
 
         <section
           class="hidden md:block"
@@ -1588,7 +1617,7 @@ onMounted(() => {
       </template>
     </Card>
 
-    <!-- Create / Edit Customer Dialog -->
+    <!-- Create / Edit dialog -->
 
     <Dialog
       v-model:visible="
@@ -1616,9 +1645,6 @@ onMounted(() => {
         maxHeight:
           'calc(100dvh - 24px)',
       }"
-      :breakpoints="{
-        '640px': '100vw',
-      }"
       :closable="!saving"
       :closeOnEscape="!saving"
       :draggable="false"
@@ -1629,9 +1655,7 @@ onMounted(() => {
         handleFormDialogHide
       "
     >
-      <div
-        class="space-y-5"
-      >
+      <div class="space-y-5">
         <Message
           v-if="errorMessage"
           severity="error"
@@ -1651,9 +1675,7 @@ onMounted(() => {
           <div
             class="mb-4 flex items-start justify-between gap-3"
           >
-            <div
-              class="min-w-0"
-            >
+            <div class="min-w-0">
               <h3
                 class="font-bold text-blue-900"
               >
@@ -1688,8 +1710,6 @@ onMounted(() => {
           <div
             class="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
-            <!-- Username -->
-
             <div>
               <label
                 for="customer-username"
@@ -1701,9 +1721,7 @@ onMounted(() => {
                   )
                 }}
 
-                <span
-                  class="text-red-500"
-                >
+                <span class="text-red-500">
                   *
                 </span>
               </label>
@@ -1722,8 +1740,6 @@ onMounted(() => {
                 "
               />
             </div>
-
-            <!-- Email -->
 
             <div>
               <label
@@ -1756,14 +1772,10 @@ onMounted(() => {
                 class="w-full"
                 autocomplete="email"
                 :placeholder="
-                  t(
-                    'customer.placeholders.email',
-                  )
+                  customerEmailPlaceholder
                 "
               />
             </div>
-
-            <!-- Password -->
 
             <div>
               <label
@@ -1807,8 +1819,6 @@ onMounted(() => {
                 :feedback="false"
               />
             </div>
-
-            <!-- Confirm password -->
 
             <div>
               <label
@@ -1875,8 +1885,6 @@ onMounted(() => {
           <div
             class="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
-            <!-- Branch -->
-
             <div>
               <label
                 for="customer-branch"
@@ -1888,9 +1896,7 @@ onMounted(() => {
                   )
                 }}
 
-                <span
-                  class="text-red-500"
-                >
+                <span class="text-red-500">
                   *
                 </span>
               </label>
@@ -1908,8 +1914,6 @@ onMounted(() => {
                 "
               />
             </div>
-
-            <!-- Phone -->
 
             <div>
               <label
@@ -1938,8 +1942,6 @@ onMounted(() => {
               />
             </div>
 
-            <!-- Balance -->
-
             <div>
               <label
                 for="customer-balance"
@@ -1965,15 +1967,11 @@ onMounted(() => {
               />
             </div>
 
-            <!-- Status -->
-
             <div
               class="flex min-h-20 items-center justify-between rounded-xl border border-gray-200 p-3"
             >
               <div>
-                <div
-                  class="font-medium"
-                >
+                <div class="font-medium">
                   {{
                     t(
                       "customer.fields.status",
@@ -1998,8 +1996,6 @@ onMounted(() => {
                 "
               />
             </div>
-
-            <!-- Address -->
 
             <div
               class="sm:col-span-2"
@@ -2030,8 +2026,6 @@ onMounted(() => {
                 "
               />
             </div>
-
-            <!-- Description -->
 
             <div
               class="sm:col-span-2"
@@ -2106,7 +2100,7 @@ onMounted(() => {
       </template>
     </Dialog>
 
-    <!-- Delete Customer Dialog -->
+    <!-- Delete dialog -->
 
     <Dialog
       v-model:visible="
@@ -2138,9 +2132,7 @@ onMounted(() => {
         handleDeleteDialogHide
       "
     >
-      <p
-        class="font-semibold"
-      >
+      <p class="font-semibold">
         {{
           t(
             "customer.deleteQuestion",
@@ -2236,7 +2228,7 @@ onMounted(() => {
 <style>
 /*
 |--------------------------------------------------------------------------
-| PrimeVue modal mask
+| Dialog overlay
 |--------------------------------------------------------------------------
 */
 
@@ -2250,7 +2242,7 @@ onMounted(() => {
 
 /*
 |--------------------------------------------------------------------------
-| Customer create/edit modal
+| Customer form dialog
 |--------------------------------------------------------------------------
 */
 
@@ -2295,7 +2287,7 @@ onMounted(() => {
 
 /*
 |--------------------------------------------------------------------------
-| Delete modal
+| Delete dialog
 |--------------------------------------------------------------------------
 */
 
@@ -2327,7 +2319,7 @@ onMounted(() => {
 
 /*
 |--------------------------------------------------------------------------
-| Mobile modal
+| Mobile dialog
 |--------------------------------------------------------------------------
 */
 

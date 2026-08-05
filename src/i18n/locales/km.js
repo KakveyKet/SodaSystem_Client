@@ -135,6 +135,19 @@ export default {
     created: "បានបង្កើតអតិថិជនដោយជោគជ័យ",
     updated: "បានកែប្រែអតិថិជនដោយជោគជ័យ",
     deleted: "បានលុបអតិថិជនដោយជោគជ័យ",
+    placeholders: {
+      username: "បញ្ចូលឈ្មោះអ្នកប្រើរបស់អតិថិជន",
+
+      email: "customer{'@'}example.com",
+
+      branch: "បញ្ចូលសាខា",
+
+      phone: "បញ្ចូលលេខទូរស័ព្ទ",
+
+      address: "បញ្ចូលអាសយដ្ឋានអតិថិជន",
+
+      description: "បញ្ចូលការពិពណ៌នាអតិថិជន",
+    },
   },
 
   product: {
