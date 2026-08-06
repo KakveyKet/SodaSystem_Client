@@ -4,16 +4,16 @@ import { useI18n } from 'vue-i18n';
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
-import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
-import ToggleSwitch from 'primevue/toggleswitch';
-import Select from 'primevue/select';
-import MultiSelect from 'primevue/multiselect';
-import Message from 'primevue/message';
+import DataTable from 'primevue/datatable';
 import DatePicker from 'primevue/datepicker';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
+import Select from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
 
 import api from '../services/api';
 
@@ -21,14 +21,18 @@ const { t, locale } = useI18n();
 
 const TWO_DIGIT_RATE = 100;
 const THREE_DIGIT_RATE = 65;
-
 const TWO_DIGIT_WIN_MULTIPLIER = 100;
 const THREE_DIGIT_WIN_MULTIPLIER = 600;
+const OVERLAY_Z_INDEX = 30000;
 
 const PRODUCT_KIND = Object.freeze({
   TWO_DIGIT: '2d',
   THREE_DIGIT: '3d'
 });
+
+/* --------------------------------------------------------------------------
+ * Date helpers
+ * -------------------------------------------------------------------------- */
 
 const getTodayDate = () => {
   const now = new Date();
@@ -43,13 +47,67 @@ const getTodayDate = () => {
 const createDefaultDateRange = () => {
   const today = getTodayDate();
 
-  return [
-    today,
-    new Date(today.getTime())
-  ];
+  return [today, new Date(today.getTime())];
 };
 
+const formatDateForApi = (value) => {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+};
+
+const parseDatePickerValue = (value) => {
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+};
+
+const isSameLocalDate = (firstDate, secondDate) => {
+  if (!firstDate || !secondDate) return false;
+
+  const first = new Date(firstDate);
+  const second = new Date(secondDate);
+
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+};
+
+const formatDate = (value) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return date.toLocaleString(
+    locale.value === 'km' ? 'km-KH' : 'en-GB'
+  );
+};
+
+const formatDateOnly = (value) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString(
+    locale.value === 'km' ? 'km-KH' : 'en-GB'
+  );
+};
+
+/* --------------------------------------------------------------------------
+ * State
+ * -------------------------------------------------------------------------- */
+
 const loading = ref(false);
+const referenceLoading = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
 const printingPlayId = ref(null);
@@ -60,15 +118,13 @@ const deleteDialogVisible = ref(false);
 const mobileFiltersVisible = ref(false);
 
 const isEditMode = ref(false);
-
 const errorMessage = ref('');
 const successMessage = ref('');
 
 const selectedDeletePlay = ref(null);
-
-const detailLoading = ref(false);
 const selectedDetailPlay = ref(null);
 const detailRows = ref([]);
+const detailLoading = ref(false);
 
 const lotteryPlays = ref([]);
 const categories = ref([]);
@@ -83,119 +139,31 @@ const limit = ref(10);
 const search = ref('');
 const filterCategoryId = ref(null);
 const filterProductId = ref(null);
-
-const filterDateRange = ref(
-  createDefaultDateRange()
-);
+const filterDateRange = ref(createDefaultDateRange());
 
 const playForm = ref({
   id: null,
   title: '',
-
   categoryIds: [],
   productIds: [],
-
   customerId: null,
   playDate: new Date(),
-
-  twoDigitRate: TWO_DIGIT_RATE,
-  threeDigitRate: THREE_DIGIT_RATE
+  twoDigitRate: null,
+  threeDigitRate: null
 });
 
 const playRows = ref([]);
 
-const totalPages = computed(() => {
-  return Math.max(
-    Math.ceil(
-      Number(totalRecords.value || 0) /
-      Number(limit.value || 10)
-    ),
-    1
-  );
-});
-
-const isSameLocalDate = (
-  firstDate,
-  secondDate
-) => {
-  if (!firstDate || !secondDate) {
-    return false;
-  }
-
-  const first = new Date(firstDate);
-  const second = new Date(secondDate);
-
-  return (
-    first.getFullYear() === second.getFullYear() &&
-    first.getMonth() === second.getMonth() &&
-    first.getDate() === second.getDate()
-  );
-};
-
-const hasActiveFilters = computed(() => {
-  const selectedRange = Array.isArray(
-    filterDateRange.value
-  )
-    ? filterDateRange.value
-    : [];
-
-  const startDate = selectedRange[0] || null;
-  const endDate = selectedRange[1] || null;
-  const today = getTodayDate();
-
-  const dateRangeChanged =
-    !startDate ||
-    !endDate ||
-    !isSameLocalDate(startDate, today) ||
-    !isSameLocalDate(endDate, today);
-
-  return Boolean(
-    search.value.trim() ||
-    filterCategoryId.value ||
-    filterProductId.value ||
-    dateRangeChanged
-  );
-});
+/* --------------------------------------------------------------------------
+ * General helpers
+ * -------------------------------------------------------------------------- */
 
 const makeLocalId = () => {
-  return `${Date.now()}-${Math.random()
-    .toString(16)
-    .slice(2)}`;
-};
-
-const extractArrayData = (
-  response,
-  keys = []
-) => {
-  if (Array.isArray(response.data?.data)) {
-    return response.data.data;
-  }
-
-  for (const key of keys) {
-    if (
-      Array.isArray(
-        response.data?.data?.[key]
-      )
-    ) {
-      return response.data.data[key];
-    }
-
-    if (
-      Array.isArray(
-        response.data?.[key]
-      )
-    ) {
-      return response.data[key];
-    }
-  }
-
-  return [];
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 const getId = (value) => {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
 
   if (typeof value === 'object') {
     return value.id || value._id || null;
@@ -204,43 +172,50 @@ const getId = (value) => {
   return value;
 };
 
-const normalizeSelectedIds = (
-  values,
-  legacyValue = null
-) => {
+const toIdString = (value) => {
+  const id = getId(value);
+  return id === null || id === undefined ? null : String(id);
+};
+
+const normalizeSelectedIds = (values, legacyValue = null) => {
   const source =
-    Array.isArray(values) &&
-    values.length > 0
+    Array.isArray(values) && values.length
       ? values
       : legacyValue
         ? [legacyValue]
         : [];
 
   return Array.from(
-    new Set(
-      source
-        .map((value) => {
-          return getId(value);
-        })
-        .filter(Boolean)
-        .map(String)
-    )
+    new Set(source.map(toIdString).filter(Boolean))
   );
+};
+
+const extractArrayData = (response, keys = []) => {
+  if (Array.isArray(response.data?.data)) {
+    return response.data.data;
+  }
+
+  for (const key of keys) {
+    if (Array.isArray(response.data?.data?.[key])) {
+      return response.data.data[key];
+    }
+
+    if (Array.isArray(response.data?.[key])) {
+      return response.data[key];
+    }
+  }
+
+  return [];
 };
 
 const normalizeProductText = (value) => {
   return String(value ?? '')
     .toLowerCase()
-    .replace(
-      /[\s_\-–—()]/g,
-      ''
-    );
+    .replace(/[\s_\-–—()]/g, '');
 };
 
 const getProductKind = (product) => {
-  if (!product) {
-    return null;
-  }
+  if (!product) return null;
 
   const values = [
     product.playType,
@@ -251,8 +226,7 @@ const getProductKind = (product) => {
   ];
 
   for (const value of values) {
-    const normalized =
-      normalizeProductText(value);
+    const normalized = normalizeProductText(value);
 
     if (
       normalized === '2' ||
@@ -279,542 +253,309 @@ const getProductKind = (product) => {
 };
 
 const getProductCategoryId = (product) => {
-  if (!product) {
-    return null;
-  }
-
-  return (
-    getId(product.category) ||
-    getId(product.categoryId) ||
-    getId(product.category_id) ||
-    null
+  return toIdString(
+    product?.category ||
+      product?.categoryId ||
+      product?.category_id
   );
 };
 
 const findProductById = (productId) => {
-  if (!productId) {
-    return null;
-  }
+  const target = toIdString(productId);
+  if (!target) return null;
 
-  return products.value.find((product) => {
-    return (
-      String(product.id || product._id) ===
-      String(productId)
-    );
-  });
+  return (
+    products.value.find(
+      (product) => toIdString(product) === target
+    ) || null
+  );
 };
 
 const findCategoryById = (categoryId) => {
-  if (!categoryId) {
-    return null;
-  }
+  const target = toIdString(categoryId);
+  if (!target) return null;
 
-  return categories.value.find((category) => {
-    return (
-      String(category.id || category._id) ===
-      String(categoryId)
-    );
-  });
+  return (
+    categories.value.find(
+      (category) => toIdString(category) === target
+    ) || null
+  );
 };
 
 const findCustomerById = (customerId) => {
-  if (!customerId) {
-    return null;
-  }
+  const target = toIdString(customerId);
+  if (!target) return null;
 
-  return customers.value.find((customer) => {
-    return (
-      String(customer.id || customer._id) ===
-      String(customerId)
-    );
-  });
+  return (
+    customers.value.find(
+      (customer) => toIdString(customer) === target
+    ) || null
+  );
+};
+
+const getCustomerUsername = (customer) => {
+  if (!customer) return '';
+
+  const linkedUser =
+    customer.userId && typeof customer.userId === 'object'
+      ? customer.userId
+      : null;
+
+  return (
+    linkedUser?.username ||
+    customer.username ||
+    customer.name ||
+    linkedUser?.email ||
+    customer.email ||
+    ''
+  );
 };
 
 const formatCustomerLabel = (customer) => {
-  if (!customer) {
-    return '-';
+  const username = getCustomerUsername(customer);
+  const branch = String(customer?.branchId || '').trim();
+
+  if (!username && !branch) return '-';
+  if (username && branch) return `${username} — ${branch}`;
+
+  return username || branch;
+};
+
+/* --------------------------------------------------------------------------
+ * Options and selection state
+ * -------------------------------------------------------------------------- */
+
+const categoryOptions = computed(() => {
+  return categories.value
+    .filter((category) => category?.status !== false)
+    .map((category) => ({
+      label: category.name || '-',
+      value: toIdString(category)
+    }))
+    .filter((option) => option.value);
+});
+
+const productOptions = computed(() => {
+  return products.value
+    .filter((product) => product?.status !== false)
+    .map((product) => {
+      const category = findCategoryById(
+        getProductCategoryId(product)
+      );
+      const kind = getProductKind(product);
+      const kindLabel =
+        kind === PRODUCT_KIND.TWO_DIGIT
+          ? '2D'
+          : kind === PRODUCT_KIND.THREE_DIGIT
+            ? '3D'
+            : '';
+
+      return {
+        label: [product.name, category?.name, kindLabel]
+          .filter(Boolean)
+          .join(' — '),
+        value: toIdString(product)
+      };
+    })
+    .filter((option) => option.value);
+});
+
+const customerOptions = computed(() => {
+  return customers.value
+    .filter((customer) => customer?.status !== false)
+    .map((customer) => ({
+      label: formatCustomerLabel(customer),
+      value: toIdString(customer)
+    }))
+    .filter((option) => option.value);
+});
+
+const filterProductOptions = computed(() => {
+  let list = products.value.filter(
+    (product) => product?.status !== false
+  );
+
+  if (filterCategoryId.value) {
+    const selectedCategoryId = String(filterCategoryId.value);
+
+    list = list.filter((product) => {
+      return getProductCategoryId(product) === selectedCategoryId;
+    });
   }
 
-  return customer.username || '-';
+  return list
+    .map((product) => ({
+      label: product.name || '-',
+      value: toIdString(product)
+    }))
+    .filter((option) => option.value);
+});
+
+const normalizeRateNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+};
+
+const rateOptions = computed(() => {
+  const map = new Map();
+
+  rates.value.forEach((rate) => {
+    if (rate?.status === false) return;
+
+    const number = normalizeRateNumber(rate?.number);
+    if (number === null || map.has(number)) return;
+
+    map.set(number, {
+      label: rate.name ? `${rate.name} (${number}%)` : `${number}%`,
+      value: number
+    });
+  });
+
+  [THREE_DIGIT_RATE, TWO_DIGIT_RATE].forEach((number) => {
+    if (!map.has(number)) {
+      map.set(number, {
+        label: `${number}%`,
+        value: number
+      });
+    }
+  });
+
+  return Array.from(map.values()).sort(
+    (first, second) => first.value - second.value
+  );
+});
+
+const twoDigitRateOptions = rateOptions;
+const threeDigitRateOptions = rateOptions;
+
+const isAvailableRate = (value) => {
+  const number = normalizeRateNumber(value);
+
+  return (
+    number !== null &&
+    rateOptions.value.some(
+      (option) => Number(option.value) === number
+    )
+  );
+};
+
+const getPreferredRate = (preferredRate) => {
+  if (isAvailableRate(preferredRate)) {
+    return Number(preferredRate);
+  }
+
+  return rateOptions.value[0]?.value ?? null;
 };
 
 const selectedProducts = computed(() => {
   return playForm.value.productIds
-    .map((productId) => {
-      return findProductById(
-        productId
-      );
-    })
+    .map(findProductById)
     .filter(Boolean);
 });
 
 const hasTwoDigitProduct = computed(() => {
   return selectedProducts.value.some(
-    (product) => {
-      return (
-        getProductKind(product) ===
-        PRODUCT_KIND.TWO_DIGIT
-      );
-    }
+    (product) =>
+      getProductKind(product) === PRODUCT_KIND.TWO_DIGIT
   );
 });
 
 const hasThreeDigitProduct = computed(() => {
   return selectedProducts.value.some(
-    (product) => {
-      return (
-        getProductKind(product) ===
-        PRODUCT_KIND.THREE_DIGIT
-      );
-    }
+    (product) =>
+      getProductKind(product) === PRODUCT_KIND.THREE_DIGIT
   );
 });
 
-const formatRate = (value) => {
-  const rate = Number(value || 0);
+const hasActiveFilters = computed(() => {
+  const range = Array.isArray(filterDateRange.value)
+    ? filterDateRange.value
+    : [];
 
-  if (rate <= 0) {
-    return '';
-  }
+  const startDate = range[0] || null;
+  const endDate = range[1] || null;
+  const today = getTodayDate();
 
-  return `${rate}%`;
-};
+  const dateChanged =
+    !startDate ||
+    !endDate ||
+    !isSameLocalDate(startDate, today) ||
+    !isSameLocalDate(endDate, today);
 
-const formatPlainNumber = (value) => {
-  return Number(value || 0).toLocaleString(
-    'en-US',
-    {
-      maximumFractionDigits: 2
-    }
-  );
-};
-
-const toPlayResultNumber = (value) => {
-  return Math.trunc(
-    Math.abs(Number(value || 0))
-  );
-};
-
-const toSignedPlayResultNumber = (value) => {
-  const result = Math.trunc(
-    Number(value || 0)
-  );
-
-  return Object.is(result, -0)
-    ? 0
-    : result;
-};
-
-const formatPlayResult = (value) => {
-  return toPlayResultNumber(value).toLocaleString(
-    'en-US'
-  );
-};
-
-const formatSignedPlayResult = (value) => {
-  return toSignedPlayResultNumber(
-    value
-  ).toLocaleString('en-US');
-};
-
-const getGrandTotalColorClass = (value) => {
-  return Number(value || 0) >= 0
-    ? 'text-blue-600'
-    : 'text-red-600';
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return date.toLocaleString(
-    locale.value === 'km'
-      ? 'km-KH'
-      : 'en-GB'
-  );
-};
-
-const formatDateOnly = (value) => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return date.toLocaleDateString(
-    locale.value === 'km'
-      ? 'km-KH'
-      : 'en-GB'
-  );
-};
-
-const formatDateForApi = (value) => {
-  if (!value) {
-    return '';
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  const timezoneOffset =
-    date.getTimezoneOffset() * 60000;
-
-  const localDate = new Date(
-    date.getTime() - timezoneOffset
-  );
-
-  return localDate.toISOString().slice(0, 10);
-};
-
-const parseDatePickerValue = (value) => {
-  if (!value) {
-    return new Date();
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return new Date();
-  }
-
-  return date;
-};
-
-const formatNumberType = (value) => {
-  const numberType = Number(value || 0);
-
-  if (numberType <= 0) {
-    return '';
-  }
-
-  return numberType;
-};
-
-const normalizeRateNumber = (value) => {
-  const number = Number(value);
-
-  if (
-    !Number.isFinite(number) ||
-    number <= 0
-  ) {
-    return null;
-  }
-
-  return number;
-};
-
-const rateOptions = computed(() => {
-  const optionMap = new Map();
-
-  rates.value.forEach((rate) => {
-    if (rate.status === false) {
-      return;
-    }
-
-    const number =
-      normalizeRateNumber(
-        rate.number
-      );
-
-    if (
-      number === null ||
-      optionMap.has(number)
-    ) {
-      return;
-    }
-
-    optionMap.set(number, {
-      label: rate.name
-        ? `${rate.name} (${number}%)`
-        : `${number}%`,
-
-      value: number,
-
-      rateId:
-        rate.id ||
-        rate._id ||
-        null
-    });
-  });
-
-  return Array
-    .from(optionMap.values())
-    .sort((first, second) => {
-      return (
-        first.value -
-        second.value
-      );
-    });
-});
-
-const isAvailableRate = (value) => {
-  const number =
-    normalizeRateNumber(value);
-
-  if (number === null) {
-    return false;
-  }
-
-  return rateOptions.value.some(
-    (option) => {
-      return (
-        Number(option.value) ===
-        number
-      );
-    }
-  );
-};
-
-const twoDigitRateOptions = rateOptions;
-const threeDigitRateOptions = rateOptions;
-
-const getPreferredRate = (
-  preferredRate
-) => {
-  if (
-    isAvailableRate(
-      preferredRate
-    )
-  ) {
-    return Number(
-      preferredRate
-    );
-  }
-
-  return (
-    rateOptions.value[0]
-      ?.value ??
-    null
-  );
-};
-
-const categoryOptions = computed(() => {
-  return categories.value.map(
-    (category) => ({
-      label: category.name,
-      value:
-        category.id ||
-        category._id
-    })
+  return Boolean(
+    search.value.trim() ||
+      filterCategoryId.value ||
+      filterProductId.value ||
+      dateChanged
   );
 });
 
-const productOptions = computed(() => {
-  return products.value.map(
-    (product) => {
-      const productCategoryId =
-        getProductCategoryId(
-          product
-        );
-
-      const category =
-        findCategoryById(
-          productCategoryId
-        );
-
-      const productKind =
-        getProductKind(product);
-
-      let automaticText = '';
-
-      if (
-        productKind ===
-        PRODUCT_KIND.TWO_DIGIT
-      ) {
-        automaticText = '2D';
-      }
-
-      if (
-        productKind ===
-        PRODUCT_KIND.THREE_DIGIT
-      ) {
-        automaticText = '3D';
-      }
-
-      const labelParts = [
-        product.name
-      ];
-
-      if (category?.name) {
-        labelParts.push(
-          category.name
-        );
-      }
-
-      if (automaticText) {
-        labelParts.push(
-          automaticText
-        );
-      }
-
-      return {
-        label:
-          labelParts.join(' — '),
-
-        value:
-          product.id ||
-          product._id
-      };
-    }
+const totalPages = computed(() => {
+  return Math.max(
+    Math.ceil(
+      Number(totalRecords.value || 0) /
+        Number(limit.value || 10)
+    ),
+    1
   );
 });
 
-const customerOptions = computed(() => {
-  return customers.value.map(
-    (customer) => ({
-      label:
-        formatCustomerLabel(customer),
+/* --------------------------------------------------------------------------
+ * Form rows and product synchronization
+ * -------------------------------------------------------------------------- */
 
-      value:
-        customer.id ||
-        customer._id
-    })
-  );
+const createEmptyPlayRow = () => ({
+  localId: makeLocalId(),
+  rowTitle: '',
+  twoDigitNumber: null,
+  threeDigitNumber: null,
+  winTwoNumberType: null,
+  winThreeNumberType: null,
+  twoDigitAmount: null,
+  threeDigitAmount: null,
+  isTwoNumber: false,
+  isThreeNumber: false
 });
-
-const filterProductOptions = computed(() => {
-  let list = products.value;
-
-  if (filterCategoryId.value) {
-    list = list.filter((product) => {
-      return (
-        String(
-          getProductCategoryId(product)
-        ) ===
-        String(filterCategoryId.value)
-      );
-    });
-  }
-
-  return list.map((product) => ({
-    label: product.name,
-    value:
-      product.id ||
-      product._id
-  }));
-});
-
-const getDefaultProductIds = () => {
-  const twoDigitProduct =
-    products.value.find(
-      (product) => {
-        return (
-          getProductKind(product) ===
-          PRODUCT_KIND.TWO_DIGIT
-        );
-      }
-    );
-
-  const threeDigitProduct =
-    products.value.find(
-      (product) => {
-        return (
-          getProductKind(product) ===
-          PRODUCT_KIND.THREE_DIGIT
-        );
-      }
-    );
-
-  return [
-    getId(twoDigitProduct),
-    getId(threeDigitProduct)
-  ].filter(Boolean);
-};
-
-const createEmptyPlayRow = () => {
-  return {
-    localId: makeLocalId(),
-    rowTitle: '',
-
-    twoDigitNumber: null,
-    threeDigitNumber: null,
-
-    winTwoNumberType: null,
-    winThreeNumberType: null,
-
-    twoDigitAmount: null,
-    threeDigitAmount: null,
-
-    /*
-     * The user controls both switches manually.
-     * Selecting a product only makes its section available.
-     */
-    isTwoNumber: false,
-    isThreeNumber: false
-  };
-};
 
 const synchronizeProductsWithRows = ({
   clearDisabled = true,
   applyDefaultRates = true
 } = {}) => {
-  playForm.value.productIds =
-    Array.from(
-      new Set(
-        playForm.value.productIds
-          .map(String)
-      )
-    ).slice(0, 2);
+  playForm.value.productIds = Array.from(
+    new Set(
+      playForm.value.productIds
+        .map(toIdString)
+        .filter(Boolean)
+    )
+  ).slice(0, 2);
 
-  /*
-   * Product selection controls which section is available.
-   * It only assigns a default rate when the current value is
-   * empty or no longer exists in the active Rate list.
-   * The user may select any active rate afterward.
-   */
   if (hasTwoDigitProduct.value) {
     if (
       applyDefaultRates &&
-      !isAvailableRate(
-        playForm.value.twoDigitRate
-      )
+      !isAvailableRate(playForm.value.twoDigitRate)
     ) {
-      playForm.value.twoDigitRate =
-        getPreferredRate(
-          TWO_DIGIT_RATE
-        );
+      playForm.value.twoDigitRate = getPreferredRate(
+        TWO_DIGIT_RATE
+      );
     }
   } else {
-    playForm.value.twoDigitRate =
-      null;
+    playForm.value.twoDigitRate = null;
   }
 
   if (hasThreeDigitProduct.value) {
     if (
       applyDefaultRates &&
-      !isAvailableRate(
-        playForm.value.threeDigitRate
-      )
+      !isAvailableRate(playForm.value.threeDigitRate)
     ) {
-      playForm.value.threeDigitRate =
-        getPreferredRate(
-          THREE_DIGIT_RATE
-        );
+      playForm.value.threeDigitRate = getPreferredRate(
+        THREE_DIGIT_RATE
+      );
     }
   } else {
-    playForm.value.threeDigitRate =
-      null;
+    playForm.value.threeDigitRate = null;
   }
 
   playRows.value.forEach((row) => {
-    /*
-     * The switches remain fully manual.
-     * A switch is forced OFF only after its product is removed.
-     */
     if (!hasTwoDigitProduct.value) {
       row.isTwoNumber = false;
 
@@ -839,65 +580,65 @@ const synchronizeProductsWithRows = ({
 
 const onProductSelectionChange = () => {
   errorMessage.value = '';
-
-  synchronizeProductsWithRows({
-    clearDisabled: true
-  });
+  synchronizeProductsWithRows({ clearDisabled: true });
 };
 
 const resetPlayForm = () => {
   playForm.value = {
     id: null,
     title: '',
-
     categoryIds: [],
-
     productIds: [],
-
     customerId: null,
     playDate: new Date(),
-
     twoDigitRate: null,
-
     threeDigitRate: null
   };
 
-  playRows.value = [
-    createEmptyPlayRow()
-  ];
+  playRows.value = [createEmptyPlayRow()];
+};
 
-  synchronizeProductsWithRows({
-    clearDisabled: false
+const addPlayRow = () => {
+  errorMessage.value = '';
+  playRows.value.push(createEmptyPlayRow());
+};
+
+const removePlayRow = (index) => {
+  if (playRows.value.length === 1) {
+    errorMessage.value = t('invoice.errors.atLeastOneRow');
+    return;
+  }
+
+  playRows.value.splice(index, 1);
+};
+
+const duplicatePlayRow = (index) => {
+  const row = playRows.value[index];
+
+  playRows.value.splice(index + 1, 0, {
+    ...row,
+    localId: makeLocalId(),
+    rowTitle: row.rowTitle
+      ? `${row.rowTitle} ${t('invoice.copySuffix')}`
+      : ''
   });
 };
 
+/* --------------------------------------------------------------------------
+ * Calculation helpers
+ * -------------------------------------------------------------------------- */
+
 const getRatePercent = (value) => {
   const rate = Number(value || 0);
-
-  return rate > 0
-    ? rate
-    : 100;
+  return rate > 0 ? rate : 100;
 };
 
-const calculateAmountWithRate = (
-  amount,
-  rate
-) => {
-  return (
-    Number(amount || 0) *
-    getRatePercent(rate)
-  ) / 100;
+const calculateAmountWithRate = (amount, rate) => {
+  return (Number(amount || 0) * getRatePercent(rate)) / 100;
 };
 
 const getPlayRows = (play) => {
-  if (
-    Array.isArray(play?.rows) &&
-    play.rows.length > 0
-  ) {
-    return play.rows;
-  }
-
-  return [];
+  return Array.isArray(play?.rows) ? play.rows : [];
 };
 
 const getPlayCalculation = (
@@ -907,16 +648,12 @@ const getPlayCalculation = (
 ) => {
   let twoDigitBaseTotal = 0;
   let threeDigitBaseTotal = 0;
-
   let twoDigitCorrectTotal = 0;
   let threeDigitCorrectTotal = 0;
 
   rows.forEach((row) => {
     if (row.isTwoNumber) {
-      twoDigitBaseTotal += Number(
-        row.twoDigitNumber || 0
-      );
-
+      twoDigitBaseTotal += Number(row.twoDigitNumber || 0);
       twoDigitCorrectTotal += Number(
         row.winTwoNumberType || 0
       );
@@ -926,49 +663,39 @@ const getPlayCalculation = (
       threeDigitBaseTotal += Number(
         row.threeDigitNumber || 0
       );
-
       threeDigitCorrectTotal += Number(
         row.winThreeNumberType || 0
       );
     }
   });
 
-  const twoDigitGrandTotal =
-    calculateAmountWithRate(
-      twoDigitBaseTotal,
-      twoDigitRate
-    );
+  const twoDigitGrandTotal = calculateAmountWithRate(
+    twoDigitBaseTotal,
+    twoDigitRate
+  );
 
-  const threeDigitGrandTotal =
-    calculateAmountWithRate(
-      threeDigitBaseTotal,
-      threeDigitRate
-    );
+  const threeDigitGrandTotal = calculateAmountWithRate(
+    threeDigitBaseTotal,
+    threeDigitRate
+  );
 
   const twoDigitCorrectDeduction =
-    twoDigitCorrectTotal *
-    TWO_DIGIT_WIN_MULTIPLIER;
+    twoDigitCorrectTotal * TWO_DIGIT_WIN_MULTIPLIER;
 
   const threeDigitCorrectDeduction =
-    threeDigitCorrectTotal *
-    THREE_DIGIT_WIN_MULTIPLIER;
+    threeDigitCorrectTotal * THREE_DIGIT_WIN_MULTIPLIER;
 
   return {
     twoDigitBaseTotal,
     threeDigitBaseTotal,
-
     twoDigitRate,
     threeDigitRate,
-
     twoDigitGrandTotal,
     threeDigitGrandTotal,
-
     twoDigitCorrectTotal,
     threeDigitCorrectTotal,
-
     twoDigitCorrectDeduction,
     threeDigitCorrectDeduction,
-
     grandTotal:
       twoDigitGrandTotal +
       threeDigitGrandTotal -
@@ -977,50 +704,42 @@ const getPlayCalculation = (
   };
 };
 
-const getPlayResultCalculation = (
-  calculation
-) => {
-  const twoDigitResult =
-    toPlayResultNumber(
-      calculation.twoDigitGrandTotal
-    );
+const toPlayResultNumber = (value) => {
+  return Math.trunc(Math.abs(Number(value || 0)));
+};
 
-  const threeDigitResult =
-    toPlayResultNumber(
-      calculation.threeDigitGrandTotal
-    );
+const toSignedPlayResultNumber = (value) => {
+  const result = Math.trunc(Number(value || 0));
+  return Object.is(result, -0) ? 0 : result;
+};
 
-  const twoDigitCorrectResult =
-    toPlayResultNumber(
-      calculation.twoDigitCorrectDeduction
-    );
-
-  const threeDigitCorrectResult =
-    toPlayResultNumber(
-      calculation.threeDigitCorrectDeduction
-    );
-
-  const playResultTotal =
-    twoDigitResult +
-    threeDigitResult;
-
-  const correctDeductionTotal =
-    twoDigitCorrectResult +
-    threeDigitCorrectResult;
+const getPlayResultCalculation = (calculation) => {
+  const twoDigitResult = toPlayResultNumber(
+    calculation.twoDigitGrandTotal
+  );
+  const threeDigitResult = toPlayResultNumber(
+    calculation.threeDigitGrandTotal
+  );
+  const twoDigitCorrectResult = toPlayResultNumber(
+    calculation.twoDigitCorrectDeduction
+  );
+  const threeDigitCorrectResult = toPlayResultNumber(
+    calculation.threeDigitCorrectDeduction
+  );
 
   return {
     twoDigitResult,
     threeDigitResult,
-
     twoDigitCorrectResult,
     threeDigitCorrectResult,
-
-    playResultTotal,
-    correctDeductionTotal,
-
+    playResultTotal: twoDigitResult + threeDigitResult,
+    correctDeductionTotal:
+      twoDigitCorrectResult + threeDigitCorrectResult,
     grandTotal:
-      playResultTotal -
-      correctDeductionTotal
+      twoDigitResult +
+      threeDigitResult -
+      twoDigitCorrectResult -
+      threeDigitCorrectResult
   };
 };
 
@@ -1033,1003 +752,276 @@ const formCalculation = computed(() => {
 });
 
 const formResultCalculation = computed(() => {
-  return getPlayResultCalculation(
-    formCalculation.value
-  );
+  return getPlayResultCalculation(formCalculation.value);
 });
 
 const detailCalculation = computed(() => {
   return getPlayCalculation(
     detailRows.value,
-
-    selectedDetailPlay.value
-      ?.twoDigitRate || 100,
-
-    selectedDetailPlay.value
-      ?.threeDigitRate || 100
+    selectedDetailPlay.value?.twoDigitRate || 100,
+    selectedDetailPlay.value?.threeDigitRate || 100
   );
 });
 
 const detailResultCalculation = computed(() => {
-  return getPlayResultCalculation(
-    detailCalculation.value
-  );
+  return getPlayResultCalculation(detailCalculation.value);
 });
+
+const formatRate = (value) => {
+  const rate = Number(value || 0);
+  return rate > 0 ? `${rate}%` : '';
+};
+
+const formatPlainNumber = (value) => {
+  return Number(value || 0).toLocaleString('en-US', {
+    maximumFractionDigits: 2
+  });
+};
+
+const formatPlayResult = (value) => {
+  return toPlayResultNumber(value).toLocaleString('en-US');
+};
+
+const formatSignedPlayResult = (value) => {
+  return toSignedPlayResultNumber(value).toLocaleString('en-US');
+};
+
+const getGrandTotalColorClass = (value) => {
+  return Number(value || 0) >= 0
+    ? 'text-blue-600'
+    : 'text-red-600';
+};
+
+const formatNumberType = (value) => {
+  const number = Number(value || 0);
+  return number > 0 ? number : '';
+};
 
 const detailDisplayRows = computed(() => {
-  return detailRows.value.map(
-    (row, index) => ({
-      sourceIndex: index + 1,
-      rowTitle: row.rowTitle,
-
-      twoDigitNumber:
-        row.isTwoNumber
-          ? Number(
-              row.twoDigitNumber || 0
-            )
-          : null,
-
-      threeDigitNumber:
-        row.isThreeNumber
-          ? Number(
-              row.threeDigitNumber || 0
-            )
-          : null,
-
-      twoDigitType:
-        row.isTwoNumber
-          ? formatNumberType(
-              row.winTwoNumberType
-            )
-          : '',
-
-      threeDigitType:
-        row.isThreeNumber
-          ? formatNumberType(
-              row.winThreeNumberType
-            )
-          : ''
-    })
-  );
+  return detailRows.value.map((row, index) => ({
+    sourceIndex: index + 1,
+    rowTitle: row.rowTitle || row.title || '',
+    twoDigitNumber: row.isTwoNumber
+      ? Number(row.twoDigitNumber || 0)
+      : null,
+    threeDigitNumber: row.isThreeNumber
+      ? Number(row.threeDigitNumber || 0)
+      : null,
+    twoDigitType: row.isTwoNumber
+      ? formatNumberType(row.winTwoNumberType)
+      : '',
+    threeDigitType: row.isThreeNumber
+      ? formatNumberType(row.winThreeNumberType)
+      : ''
+  }));
 });
 
-const getCategoryName = (row) => {
-  const categoryValues =
-    Array.isArray(
-      row?.categoryIds
-    ) &&
-    row.categoryIds.length > 0
-      ? row.categoryIds
-      : [
-          row?.categoryId ||
-          row?.category
-        ].filter(Boolean);
+/* --------------------------------------------------------------------------
+ * Display helpers
+ * -------------------------------------------------------------------------- */
 
-  if (!categoryValues.length) {
-    return '-';
-  }
+const getCategoryName = (play) => {
+  const values =
+    Array.isArray(play?.categoryIds) && play.categoryIds.length
+      ? play.categoryIds
+      : [play?.categoryId || play?.category].filter(Boolean);
 
-  const names =
-    categoryValues
-      .map((categoryValue) => {
-        if (
-          categoryValue &&
-          typeof categoryValue ===
-            'object'
-        ) {
-          return (
-            categoryValue.name ||
-            ''
-          );
-        }
+  const names = values
+    .map((value) => {
+      if (value && typeof value === 'object') {
+        return value.name || '';
+      }
 
-        const category =
-          findCategoryById(
-            getId(
-              categoryValue
-            )
-          );
-
-        return (
-          category?.name ||
-          ''
-        );
-      })
-      .filter(Boolean);
-
-  return (
-    names.join(', ') ||
-    '-'
-  );
-};
-
-const getProductName = (row) => {
-  const productValues =
-    Array.isArray(
-      row?.productIds
-    ) &&
-    row.productIds.length > 0
-      ? row.productIds
-      : [
-          row?.productId ||
-          row?.product
-        ].filter(Boolean);
-
-  if (!productValues.length) {
-    return '-';
-  }
-
-  const names =
-    productValues
-      .map((productValue) => {
-        if (
-          productValue &&
-          typeof productValue ===
-            'object'
-        ) {
-          return (
-            productValue.name ||
-            ''
-          );
-        }
-
-        const product =
-          findProductById(
-            getId(
-              productValue
-            )
-          );
-
-        return (
-          product?.name ||
-          ''
-        );
-      })
-      .filter(Boolean);
-
-  return (
-    names.join(', ') ||
-    '-'
-  );
-};
-
-const getCustomerName = (row) => {
-  const customerValue =
-    row?.customerId ||
-    row?.customer;
-
-  if (!customerValue) {
-    return '-';
-  }
-
-  if (
-    typeof customerValue === 'object'
-  ) {
-    return (
-      customerValue.username ||
-      '-'
-    );
-  }
-
-  const customer =
-    findCustomerById(customerValue);
-
-  if (customer) {
-    return customer.username || '-';
-  }
-
-  return String(customerValue);
-};
-/*
-|--------------------------------------------------------------------------
-| Invoice print helpers
-|--------------------------------------------------------------------------
-*/
-
-const escapeHtml = (value) => {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-};
-
-const getPrintTotalColor = (value) => {
-  return Number(value || 0) >= 0
-    ? '#2563eb'
-    : '#dc2626';
-};
-
-const buildPrintHtml = (play) => {
-  const rows = getPlayRows(play);
-
-  const calculation = getPlayCalculation(
-    rows,
-    play?.twoDigitRate || 100,
-    play?.threeDigitRate || 100
-  );
-
-  const resultCalculation =
-    getPlayResultCalculation(calculation);
-
-  const printedRows = rows
-    .map((row, index) => {
-      const twoDigitNumber = row.isTwoNumber
-        ? formatPlainNumber(row.twoDigitNumber)
-        : '';
-
-      const threeDigitNumber = row.isThreeNumber
-        ? formatPlainNumber(row.threeDigitNumber)
-        : '';
-
-      const twoDigitType =
-        row.isTwoNumber &&
-        Number(row.winTwoNumberType || 0) > 0
-          ? formatPlainNumber(
-              row.winTwoNumberType
-            )
-          : '';
-
-      const threeDigitType =
-        row.isThreeNumber &&
-        Number(row.winThreeNumberType || 0) > 0
-          ? formatPlainNumber(
-              row.winThreeNumberType
-            )
-          : '';
-
-      return `
-        <tr>
-          <td class="center">
-            (${index + 1})
-          </td>
-
-          <td class="row-title">
-            ${escapeHtml(row.rowTitle || '')}
-          </td>
-
-          <td class="center">
-            ${escapeHtml(twoDigitNumber)}
-          </td>
-
-          <td class="center">
-            ${escapeHtml(threeDigitNumber)}
-          </td>
-
-          <td class="center">
-            ${escapeHtml(twoDigitType)}
-          </td>
-
-          <td class="center">
-            ${escapeHtml(threeDigitType)}
-          </td>
-
-          <td class="check-column">
-            ✓
-          </td>
-        </tr>
-      `;
+      return findCategoryById(value)?.name || '';
     })
-    .join('');
+    .filter(Boolean);
 
-  const twoDigitCorrectLine =
-    calculation.twoDigitCorrectTotal > 0
-      ? `
-        <div class="calculation-row deduction-row">
-          <div class="calculation-name">
-            ${escapeHtml(
-              t('invoice.print.correctTwoDigit')
-            )}
-          </div>
-
-          <div class="calculation-value">
-            ${formatPlayResult(
-              calculation.twoDigitCorrectTotal
-            )}
-            x ${TWO_DIGIT_WIN_MULTIPLIER}
-            =
-            -${formatPlayResult(
-              resultCalculation.twoDigitCorrectResult
-            )}
-          </div>
-        </div>
-      `
-      : '';
-
-  const threeDigitCorrectLine =
-    calculation.threeDigitCorrectTotal > 0
-      ? `
-        <div class="calculation-row deduction-row">
-          <div class="calculation-name">
-            ${escapeHtml(
-              t('invoice.print.correctThreeDigit')
-            )}
-          </div>
-
-          <div class="calculation-value">
-            ${formatPlayResult(
-              calculation.threeDigitCorrectTotal
-            )}
-            x ${THREE_DIGIT_WIN_MULTIPLIER}
-            =
-            -${formatPlayResult(
-              resultCalculation.threeDigitCorrectResult
-            )}
-          </div>
-        </div>
-      `
-      : '';
-
-  const totalColor = getPrintTotalColor(
-    resultCalculation.grandTotal
-  );
-
-  return `
-    <!DOCTYPE html>
-
-    <html lang="${locale.value === 'km' ? 'km' : 'en'}">
-      <head>
-        <meta charset="UTF-8" />
-
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1.0"
-        />
-
-        <title>&#8203;</title>
-
-        <style>
-          * {
-            box-sizing: border-box;
-          }
-
-          html,
-          body {
-            margin: 0;
-            padding: 0;
-            background: #ffffff;
-          }
-
-          body {
-            padding: 16px;
-            color: #111827;
-            font-family:
-              "Inter",
-              "Noto Sans Khmer",
-              "Khmer OS Battambang",
-              "Khmer OS Siemreap",
-              Arial,
-              sans-serif;
-          }
-
-          .invoice {
-            width: 760px;
-            max-width: 100%;
-            margin: 0 auto;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            font-size: 14px;
-          }
-
-          th,
-          td {
-            height: 36px;
-            border: 1px solid #cbd5e1;
-            padding: 5px 7px;
-            vertical-align: middle;
-          }
-
-          th {
-            text-align: center;
-            font-weight: 800;
-            background: #ffffff;
-          }
-
-          .number-column {
-            width: 68px;
-          }
-
-          .row-title-column {
-            width: 225px;
-          }
-
-          .value-column {
-            width: 110px;
-          }
-
-          .correct-column {
-            width: 100px;
-          }
-
-          .status-column {
-            width: 50px;
-          }
-
-          .center {
-            text-align: center;
-          }
-
-          .row-title {
-            text-align: left;
-            font-weight: 700;
-          }
-
-          .check-column {
-            text-align: center;
-            color: #22c55e;
-            font-size: 18px;
-            font-weight: 900;
-          }
-
-          .calculation-container {
-            margin-top: 12px;
-            font-size: 16px;
-            font-weight: 700;
-          }
-
-          .calculation-row {
-            display: grid;
-            grid-template-columns: 105px 1fr;
-            align-items: center;
-            margin-bottom: 4px;
-          }
-
-          .calculation-name {
-            text-align: left;
-            font-weight: 800;
-          }
-
-          .calculation-value {
-            text-align: left;
-            font-weight: 800;
-          }
-
-          .deduction-row {
-            color: #dc2626;
-          }
-
-          .divider {
-            margin: 14px 0 10px;
-            border-top: 1px solid #9ca3af;
-          }
-
-          .grand-total {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 22px;
-            color: ${totalColor};
-            font-size: 22px;
-            font-weight: 900;
-          }
-
-          @media print {
-            html,
-            body {
-              width: 100%;
-              margin: 0;
-              padding: 0;
-            }
-
-            body {
-              padding: 0;
-            }
-
-            .invoice {
-              width: 100%;
-              max-width: 100%;
-              margin: 0;
-            }
-
-            @page {
-              size: auto;
-              margin: 10mm;
-            }
-          }
-        </style>
-      </head>
-
-      <body>
-        <div class="invoice">
-          <table>
-            <thead>
-              <tr>
-                <th class="number-column">
-                  ${escapeHtml(
-                    t('invoice.print.serial')
-                  )}
-                </th>
-
-                <th class="row-title-column">
-                  ${escapeHtml(
-                    t('invoice.print.rowTitle')
-                  )}
-                </th>
-
-                <th class="value-column">
-                  ${escapeHtml(
-                    t('invoice.print.twoDigit')
-                  )}
-                </th>
-
-                <th class="value-column">
-                  ${escapeHtml(
-                    t('invoice.print.threeDigit')
-                  )}
-                </th>
-
-                <th class="correct-column">
-                  ${escapeHtml(
-                    t('invoice.print.correctTwoDigit')
-                  )}
-                </th>
-
-                <th class="correct-column">
-                  ${escapeHtml(
-                    t('invoice.print.correctThreeDigit')
-                  )}
-                </th>
-
-                <th class="status-column"></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              ${printedRows}
-            </tbody>
-          </table>
-
-          <div class="calculation-container">
-            <div class="calculation-row">
-              <div class="calculation-name">
-                ${escapeHtml(
-                  t('invoice.print.twoDigit')
-                )}
-              </div>
-
-              <div class="calculation-value">
-                ${formatPlayResult(
-                  calculation.twoDigitBaseTotal
-                )}
-                x${formatRate(
-                  calculation.twoDigitRate
-                )}
-                =
-                ${formatPlayResult(
-                  resultCalculation.twoDigitResult
-                )}
-              </div>
-            </div>
-
-            <div class="calculation-row">
-              <div class="calculation-name">
-                ${escapeHtml(
-                  t('invoice.print.threeDigit')
-                )}
-              </div>
-
-              <div class="calculation-value">
-                ${formatPlayResult(
-                  calculation.threeDigitBaseTotal
-                )}
-                x${formatRate(
-                  calculation.threeDigitRate
-                )}
-                =
-                ${formatPlayResult(
-                  resultCalculation.threeDigitResult
-                )}
-              </div>
-            </div>
-
-            ${twoDigitCorrectLine}
-
-            ${threeDigitCorrectLine}
-
-            <div class="divider"></div>
-
-            <div class="grand-total">
-              <span>
-                ${escapeHtml(
-                  t('invoice.print.total')
-                )}:
-              </span>
-
-              <span>
-                ${formatSignedPlayResult(
-                  resultCalculation.grandTotal
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  return names.join(', ') || '-';
 };
 
-const printLotteryPlay = async (play) => {
-  errorMessage.value = '';
+const getProductName = (play) => {
+  const values =
+    Array.isArray(play?.productIds) && play.productIds.length
+      ? play.productIds
+      : [play?.productId || play?.product].filter(Boolean);
 
-  if (!play) {
-    errorMessage.value =
-      t('invoice.errors.dataNotFound');
+  const names = values
+    .map((value) => {
+      if (value && typeof value === 'object') {
+        return value.name || '';
+      }
 
-    return;
-  }
+      return findProductById(value)?.name || '';
+    })
+    .filter(Boolean);
 
-  const playId =
-    play?.id ||
-    play?._id;
-
-  const printWindow = window.open(
-    '',
-    '_blank',
-    'width=900,height=750'
-  );
-
-  if (!printWindow) {
-    errorMessage.value =
-      t('invoice.errors.popupBlocked');
-
-    return;
-  }
-
-  try {
-    printingPlayId.value = playId;
-
-    printWindow.document.open();
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>&#8203;</title>
-        </head>
-
-        <body
-          style="
-            margin: 0;
-            padding: 30px;
-            font-family:
-              Inter,
-              Arial,
-              sans-serif;
-          "
-        >
-          ${escapeHtml(
-            t('invoice.print.preparing')
-          )}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-
-    let freshPlay = play;
-
-    if (playId) {
-      const response = await api.get(
-        `/lottery-plays/${playId}`
-      );
-
-      freshPlay =
-        response.data?.data ||
-        play;
-    }
-
-    const html = buildPrintHtml(
-      freshPlay
-    );
-
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-
-    printWindow.document.title = '\u200B';
-    printWindow.focus();
-
-    const startPrint = () => {
-      printWindow.document.title = '\u200B';
-
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
-    };
-
-    if (
-      printWindow.document.readyState ===
-      'complete'
-    ) {
-      startPrint();
-    } else {
-      printWindow.onload = startPrint;
-    }
-  } catch (error) {
-    console.error(
-      'Print invoice error:',
-      error
-    );
-
-    printWindow.document.open();
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>&#8203;</title>
-        </head>
-
-        <body
-          style="
-            margin: 0;
-            padding: 30px;
-            font-family:
-              Inter,
-              Arial,
-              sans-serif;
-            color: #dc2626;
-          "
-        >
-          ${escapeHtml(
-            t('invoice.print.prepareError')
-          )}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-
-    errorMessage.value =
-      error.response?.data?.message ||
-      t('invoice.errors.print');
-  } finally {
-    printingPlayId.value = null;
-  }
+  return names.join(', ') || '-';
 };
+
+const getCustomerName = (play) => {
+  const value = play?.customerId || play?.customer;
+  if (!value) return '-';
+
+  if (typeof value === 'object') {
+    return getCustomerUsername(value) || '-';
+  }
+
+  return getCustomerUsername(findCustomerById(value)) || '-';
+};
+
+/* --------------------------------------------------------------------------
+ * Reference data
+ * -------------------------------------------------------------------------- */
 
 const fetchCategories = async () => {
-  const response = await api.get(
-    '/categories',
-    {
-      params: {
-        page: 1,
-        limit: 100,
-        status: true
-      }
-    }
-  );
+  const response = await api.get('/categories', {
+    params: { page: 1, limit: 500, status: true }
+  });
 
-  categories.value =
-    extractArrayData(
-      response,
-      [
-        'categories',
-        'items',
-        'results'
-      ]
-    );
+  categories.value = extractArrayData(response, [
+    'categories',
+    'items',
+    'results'
+  ]);
 };
 
 const fetchProducts = async () => {
-  const response = await api.get(
-    '/products',
-    {
-      params: {
-        page: 1,
-        limit: 100,
-        status: true
-      }
-    }
-  );
+  const response = await api.get('/products', {
+    params: { page: 1, limit: 500, status: true }
+  });
 
-  products.value =
-    extractArrayData(
-      response,
-      [
-        'products',
-        'items',
-        'results'
-      ]
-    );
+  products.value = extractArrayData(response, [
+    'products',
+    'items',
+    'results'
+  ]);
 };
 
 const fetchCustomers = async () => {
-  try {
-    const response = await api.get(
-      '/customers',
-      {
-        params: {
-          page: 1,
-          limit: 500,
-          status: true
-        }
-      }
-    );
+  const response = await api.get('/customers', {
+    params: { page: 1, limit: 500, status: true }
+  });
 
-    customers.value =
-      extractArrayData(
-        response,
-        [
-          'customers',
-          'items',
-          'results'
-        ]
-      );
-  } catch (error) {
-    console.warn(
-      'Fetch customers warning:',
-      error
-    );
-
-    customers.value = [];
-  }
+  customers.value = extractArrayData(response, [
+    'customers',
+    'items',
+    'results'
+  ]);
 };
 
 const fetchRates = async () => {
   try {
-    const response = await api.get(
-      '/rates',
-      {
-        params: {
-          page: 1,
-          limit: 100,
-          status: true
-        }
-      }
-    );
+    const response = await api.get('/rates', {
+      params: { page: 1, limit: 500, status: true }
+    });
 
-    rates.value =
-      extractArrayData(
-        response,
-        [
-          'rates',
-          'items',
-          'results'
-        ]
-      );
+    rates.value = extractArrayData(response, [
+      'rates',
+      'items',
+      'results'
+    ]);
   } catch (error) {
-    console.warn(
-      'Fetch rates warning:',
-      error
-    );
-
+    console.warn('Fetch rates warning:', error);
     rates.value = [];
   }
 };
+
+const loadReferenceData = async ({ force = false } = {}) => {
+  if (
+    !force &&
+    categories.value.length &&
+    products.value.length &&
+    customers.value.length
+  ) {
+    return;
+  }
+
+  try {
+    referenceLoading.value = true;
+
+    const results = await Promise.allSettled([
+      fetchCategories(),
+      fetchProducts(),
+      fetchCustomers(),
+      fetchRates()
+    ]);
+
+    const failed = results.filter(
+      (result) => result.status === 'rejected'
+    );
+
+    failed.forEach((result) => {
+      console.error('Reference data error:', result.reason);
+    });
+
+    if (failed.length) {
+      errorMessage.value =
+        failed[0].reason?.response?.data?.message ||
+        t('invoice.errors.fetch');
+    }
+  } finally {
+    referenceLoading.value = false;
+  }
+};
+
+/* --------------------------------------------------------------------------
+ * Invoice listing and filters
+ * -------------------------------------------------------------------------- */
 
 const fetchLotteryPlays = async () => {
   try {
     loading.value = true;
     errorMessage.value = '';
 
-    const selectedRange = Array.isArray(
-      filterDateRange.value
-    )
+    const range = Array.isArray(filterDateRange.value)
       ? filterDateRange.value
       : [];
-
-    const startDate = selectedRange[0] || null;
-    const endDate =
-      selectedRange[1] ||
-      selectedRange[0] ||
-      null;
+    const startDate = range[0] || null;
+    const endDate = range[1] || range[0] || null;
 
     const params = {
       page: page.value,
       limit: limit.value
     };
 
-    if (startDate) {
-      params.dateFrom =
-        formatDateForApi(startDate);
-    }
-
-    if (endDate) {
-      params.dateTo =
-        formatDateForApi(endDate);
-    }
-
-    if (search.value.trim()) {
-      params.search =
-        search.value.trim();
-    }
-
+    if (startDate) params.dateFrom = formatDateForApi(startDate);
+    if (endDate) params.dateTo = formatDateForApi(endDate);
+    if (search.value.trim()) params.search = search.value.trim();
     if (filterCategoryId.value) {
-      params.categoryId =
-        filterCategoryId.value;
+      params.categoryId = filterCategoryId.value;
     }
-
     if (filterProductId.value) {
-      params.productId =
-        filterProductId.value;
+      params.productId = filterProductId.value;
     }
 
-    const response = await api.get(
-      '/lottery-plays',
-      {
-        params
-      }
-    );
+    const response = await api.get('/lottery-plays', { params });
 
-    lotteryPlays.value =
-      extractArrayData(
-        response,
-        [
-          'lotteryPlays',
-          'plays',
-          'items',
-          'results'
-        ]
-      );
+    lotteryPlays.value = extractArrayData(response, [
+      'lotteryPlays',
+      'plays',
+      'items',
+      'results'
+    ]);
 
-    totalRecords.value =
+    totalRecords.value = Number(
       response.data?.pagination?.total ??
-      response.data?.data?.pagination
-        ?.total ??
-      lotteryPlays.value.length;
-  } catch (error) {
-    console.error(
-      'Fetch invoices error:',
-      error
+        response.data?.data?.pagination?.total ??
+        lotteryPlays.value.length
     );
-
+  } catch (error) {
+    console.error('Fetch invoices error:', error);
     lotteryPlays.value = [];
-
+    totalRecords.value = 0;
     errorMessage.value =
-      error.response?.data?.message ||
-      t('invoice.errors.fetch');
+      error.response?.data?.message || t('invoice.errors.fetch');
   } finally {
     loading.value = false;
   }
 };
 
-const onPageChange = (event) => {
-  page.value = event.page + 1;
-  limit.value = event.rows;
-
-  fetchLotteryPlays();
-};
-
-const goToPreviousPage = () => {
-  if (
-    loading.value ||
-    page.value <= 1
-  ) {
-    return;
-  }
-
-  page.value -= 1;
-
-  fetchLotteryPlays();
-};
-
-const goToNextPage = () => {
-  if (
-    loading.value ||
-    page.value >= totalPages.value
-  ) {
-    return;
-  }
-
-  page.value += 1;
-
-  fetchLotteryPlays();
-};
-
 const applyFilter = () => {
   page.value = 1;
   mobileFiltersVisible.value = false;
-
   fetchLotteryPlays();
 };
 
@@ -2037,12 +1029,9 @@ const clearFilter = () => {
   search.value = '';
   filterCategoryId.value = null;
   filterProductId.value = null;
-  filterDateRange.value =
-    createDefaultDateRange();
-
+  filterDateRange.value = createDefaultDateRange();
   page.value = 1;
   mobileFiltersVisible.value = false;
-
   fetchLotteryPlays();
 };
 
@@ -2050,520 +1039,197 @@ const onFilterCategoryChange = () => {
   filterProductId.value = null;
 };
 
-const addPlayRow = () => {
-  errorMessage.value = '';
-
-  playRows.value.push(
-    createEmptyPlayRow()
-  );
+const onPageChange = (event) => {
+  page.value = event.page + 1;
+  limit.value = event.rows;
+  fetchLotteryPlays();
 };
 
-const removePlayRow = (index) => {
-  if (playRows.value.length === 1) {
-    errorMessage.value =
-      t('invoice.errors.atLeastOneRow');
-
-    return;
-  }
-
-  playRows.value.splice(index, 1);
+const goToPreviousPage = () => {
+  if (loading.value || page.value <= 1) return;
+  page.value -= 1;
+  fetchLotteryPlays();
 };
 
-const duplicatePlayRow = (index) => {
-  const row = playRows.value[index];
-
-  playRows.value.splice(
-    index + 1,
-    0,
-    {
-      ...row,
-      localId: makeLocalId(),
-
-      rowTitle: row.rowTitle
-        ? `${row.rowTitle} ${t(
-            'invoice.copySuffix'
-          )}`
-        : ''
-    }
-  );
+const goToNextPage = () => {
+  if (loading.value || page.value >= totalPages.value) return;
+  page.value += 1;
+  fetchLotteryPlays();
 };
 
-const openCreateDialog = () => {
+/* --------------------------------------------------------------------------
+ * Create and edit dialogs
+ * -------------------------------------------------------------------------- */
+
+const openCreateDialog = async () => {
   errorMessage.value = '';
   successMessage.value = '';
 
+  await loadReferenceData();
   resetPlayForm();
 
   isEditMode.value = false;
   dialogVisible.value = true;
 };
 
-const openEditDialog = (play) => {
+const openEditDialog = async (play) => {
   errorMessage.value = '';
   successMessage.value = '';
 
+  await loadReferenceData();
+
   playForm.value = {
-    id:
-      play.id ||
-      play._id,
-
-    title:
-      play.title || '',
-
-    categoryIds:
-      normalizeSelectedIds(
-        play.categoryIds,
-        play.categoryId ||
-        play.category
-      ),
-
-    productIds:
-      normalizeSelectedIds(
-        play.productIds,
-        play.productId ||
-        play.product
-      ),
-
-    customerId:
-      getId(
-        play.customerId ||
-        play.customer
-      ),
-
-    playDate:
-      parseDatePickerValue(
-        play.playDate ||
-        play.createdAt
-      ),
-
-    twoDigitRate:
-      normalizeRateNumber(
-        play.twoDigitRate
-      ),
-
-    threeDigitRate:
-      normalizeRateNumber(
-        play.threeDigitRate
-      )
+    id: play.id || play._id,
+    title: play.title || '',
+    categoryIds: normalizeSelectedIds(
+      play.categoryIds,
+      play.categoryId || play.category
+    ),
+    productIds: normalizeSelectedIds(
+      play.productIds,
+      play.productId || play.product
+    ),
+    customerId: toIdString(play.customerId || play.customer),
+    playDate: parseDatePickerValue(
+      play.playDate || play.createdAt
+    ),
+    twoDigitRate: normalizeRateNumber(play.twoDigitRate),
+    threeDigitRate: normalizeRateNumber(play.threeDigitRate)
   };
 
-  playRows.value =
-    getPlayRows(play).map(
-      (row) => ({
-        localId:
-          makeLocalId(),
-
-        rowTitle:
-          row.rowTitle ||
-          row.title ||
-          '',
-
-        twoDigitNumber:
-          row.twoDigitNumber,
-
-        threeDigitNumber:
-          row.threeDigitNumber,
-
-        winTwoNumberType:
-          row.winTwoNumberType ||
-          null,
-
-        winThreeNumberType:
-          row.winThreeNumberType ||
-          null,
-
-        twoDigitAmount:
-          row.twoDigitAmount ||
-          null,
-
-        threeDigitAmount:
-          row.threeDigitAmount ||
-          null,
-
-        isTwoNumber:
-          Boolean(
-            row.isTwoNumber
-          ),
-
-        isThreeNumber:
-          Boolean(
-            row.isThreeNumber
-          )
-      })
-    );
+  playRows.value = getPlayRows(play).map((row) => ({
+    localId: makeLocalId(),
+    rowTitle: row.rowTitle || row.title || '',
+    twoDigitNumber: row.twoDigitNumber ?? null,
+    threeDigitNumber: row.threeDigitNumber ?? null,
+    winTwoNumberType: row.winTwoNumberType ?? null,
+    winThreeNumberType: row.winThreeNumberType ?? null,
+    twoDigitAmount: row.twoDigitAmount ?? null,
+    threeDigitAmount: row.threeDigitAmount ?? null,
+    isTwoNumber: Boolean(row.isTwoNumber),
+    isThreeNumber: Boolean(row.isThreeNumber)
+  }));
 
   if (!playRows.value.length) {
-    playRows.value = [
-      createEmptyPlayRow()
-    ];
+    playRows.value = [createEmptyPlayRow()];
   }
 
-  synchronizeProductsWithRows({
-    clearDisabled: false
-  });
+  synchronizeProductsWithRows({ clearDisabled: false });
 
   isEditMode.value = true;
   dialogVisible.value = true;
 };
 
-const openDetailDialog = async (play) => {
-  try {
-    detailDialogVisible.value = true;
-    detailLoading.value = true;
-
-    selectedDetailPlay.value = play;
-    detailRows.value =
-      getPlayRows(play);
-
-    const playId =
-      play.id ||
-      play._id;
-
-    if (!playId) {
-      return;
-    }
-
-    const response = await api.get(
-      `/lottery-plays/${playId}`
-    );
-
-    const freshPlay =
-      response.data?.data ||
-      play;
-
-    selectedDetailPlay.value =
-      freshPlay;
-
-    detailRows.value =
-      getPlayRows(freshPlay);
-  } catch (error) {
-    console.error(
-      'Fetch invoice detail error:',
-      error
-    );
-
-    errorMessage.value =
-      error.response?.data?.message ||
-      t('invoice.errors.detail');
-  } finally {
-    detailLoading.value = false;
-  }
-};
-
 const validatePlayForm = () => {
-  if (
-    !playForm.value.title ||
-    !playForm.value.title.trim()
-  ) {
-    return t(
-      'invoice.errors.titleRequired'
-    );
+  if (!playForm.value.title.trim()) {
+    return t('invoice.errors.titleRequired');
   }
 
-  if (
-    !Array.isArray(
-      playForm.value.categoryIds
-    ) ||
-    !playForm.value.categoryIds.length
-  ) {
-    return t(
-      'invoice.errors.categoryRequired'
-    );
+  if (!playForm.value.categoryIds.length) {
+    return t('invoice.errors.categoryRequired');
   }
 
-  if (
-    !Array.isArray(
-      playForm.value.productIds
-    ) ||
-    !playForm.value.productIds.length
-  ) {
-    return t(
-      'invoice.errors.productRequired'
-    );
-  }
-
-  const unknownProduct =
-    selectedProducts.value.find(
-      (product) => {
-        return !getProductKind(
-          product
-        );
-      }
-    );
-
-  if (unknownProduct) {
-    return (
-      `Product "${unknownProduct.name}" ` +
-      'is not configured as ' +
-      '2 លេខ or 3 លេខ'
-    );
+  if (!playForm.value.productIds.length) {
+    return t('invoice.errors.productRequired');
   }
 
   if (!playForm.value.customerId) {
-    return t(
-      'invoice.errors.customerRequired'
-    );
+    return t('invoice.errors.customerRequired');
   }
 
   if (!playForm.value.playDate) {
-    return t(
-      'invoice.errors.dateRequired'
-    );
+    return t('invoice.errors.dateRequired');
+  }
+
+  const unknownProduct = selectedProducts.value.find(
+    (product) => !getProductKind(product)
+  );
+
+  if (unknownProduct) {
+    return locale.value === 'km'
+      ? `ផលិតផល "${unknownProduct.name}" មិនទាន់កំណត់ជា 2 លេខ ឬ 3 លេខ`
+      : `Product "${unknownProduct.name}" is not configured as 2D or 3D`;
   }
 
   if (
     hasTwoDigitProduct.value &&
-    !isAvailableRate(
-      playForm.value.twoDigitRate
-    )
+    !isAvailableRate(playForm.value.twoDigitRate)
   ) {
-    return t(
-      'invoice.errors.invalidTwoDigitRate'
-    );
+    return t('invoice.errors.invalidTwoDigitRate');
   }
 
   if (
     hasThreeDigitProduct.value &&
-    !isAvailableRate(
-      playForm.value.threeDigitRate
-    )
+    !isAvailableRate(playForm.value.threeDigitRate)
   ) {
-    return t(
-      'invoice.errors.invalidThreeDigitRate'
-    );
+    return t('invoice.errors.invalidThreeDigitRate');
   }
 
   if (!playRows.value.length) {
-    return t(
-      'invoice.errors.atLeastOneRow'
-    );
+    return t('invoice.errors.atLeastOneRow');
   }
 
-  for (
-    let index = 0;
-    index < playRows.value.length;
-    index += 1
-  ) {
-    const row =
-      playRows.value[index];
+  for (let index = 0; index < playRows.value.length; index += 1) {
+    const row = playRows.value[index];
+    const rowNumber = index + 1;
 
-    const rowNumber =
-      index + 1;
-
-    if (
-      !row.rowTitle ||
-      !row.rowTitle.trim()
-    ) {
-      return t(
-        'invoice.errors.rowNameRequired',
-        {
-          row: rowNumber
-        }
-      );
+    if (!row.rowTitle.trim()) {
+      return t('invoice.errors.rowNameRequired', { row: rowNumber });
     }
 
-    if (
-      !row.isTwoNumber &&
-      !row.isThreeNumber
-    ) {
+    if (!row.isTwoNumber && !row.isThreeNumber) {
       return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមបើក 2D ឬ 3D យ៉ាងហោចណាស់មួយ`
         : `Row ${rowNumber}: Please enable 2D or 3D`;
     }
 
-    if (
-      row.isTwoNumber &&
-      !hasTwoDigitProduct.value
-    ) {
+    if (row.isTwoNumber && !hasTwoDigitProduct.value) {
       return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 2 លេខ មុនពេលបើក 2D`
-        : `Row ${rowNumber}: Select the 2 លេខ product before enabling 2D`;
+        : `Row ${rowNumber}: Select a 2D product first`;
     }
 
-    if (
-      row.isThreeNumber &&
-      !hasThreeDigitProduct.value
-    ) {
+    if (row.isThreeNumber && !hasThreeDigitProduct.value) {
       return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 3 លេខ មុនពេលបើក 3D`
-        : `Row ${rowNumber}: Select the 3 លេខ product before enabling 3D`;
+        : `Row ${rowNumber}: Select a 3D product first`;
     }
 
     if (row.isTwoNumber) {
+      const value = Number(row.twoDigitNumber);
+
       if (
         row.twoDigitNumber === null ||
-        row.twoDigitNumber ===
-          undefined ||
+        row.twoDigitNumber === undefined ||
         row.twoDigitNumber === ''
       ) {
-        return t(
-          'invoice.errors.twoDigitRequired',
-          {
-            row: rowNumber
-          }
-        );
+        return t('invoice.errors.twoDigitRequired', { row: rowNumber });
       }
 
-      const twoDigitNumber =
-        Number(
-          row.twoDigitNumber
-        );
-
-      if (
-        !Number.isFinite(
-          twoDigitNumber
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          '2D number must be valid'
-        );
-      }
-
-      if (twoDigitNumber < 0) {
-        return (
-          `Row ${rowNumber}: ` +
-          '2D number cannot be negative'
-        );
-      }
-
-      const twoDigitAmount =
-        Number(
-          row.twoDigitAmount || 0
-        );
-
-      if (
-        !Number.isFinite(
-          twoDigitAmount
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          '2D amount must be valid'
-        );
-      }
-
-      if (twoDigitAmount < 0) {
-        return t(
-          'invoice.errors.twoDigitAmountNegative',
-          {
-            row: rowNumber
-          }
-        );
-      }
-
-      const winTwoNumberType =
-        Number(
-          row.winTwoNumberType || 0
-        );
-
-      if (
-        !Number.isFinite(
-          winTwoNumberType
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          'Correct 2D value must be valid'
-        );
-      }
-
-      if (winTwoNumberType < 0) {
-        return t(
-          'invoice.errors.twoDigitTypeNegative',
-          {
-            row: rowNumber
-          }
-        );
+      if (!Number.isFinite(value) || value < 0) {
+        return locale.value === 'km'
+          ? `ជួរទី ${rowNumber}: តម្លៃ 2D មិនត្រឹមត្រូវ`
+          : `Row ${rowNumber}: 2D number must be valid and non-negative`;
       }
     }
 
     if (row.isThreeNumber) {
+      const value = Number(row.threeDigitNumber);
+
       if (
         row.threeDigitNumber === null ||
-        row.threeDigitNumber ===
-          undefined ||
+        row.threeDigitNumber === undefined ||
         row.threeDigitNumber === ''
       ) {
-        return t(
-          'invoice.errors.threeDigitRequired',
-          {
-            row: rowNumber
-          }
-        );
+        return t('invoice.errors.threeDigitRequired', {
+          row: rowNumber
+        });
       }
 
-      const threeDigitNumber =
-        Number(
-          row.threeDigitNumber
-        );
-
-      if (
-        !Number.isFinite(
-          threeDigitNumber
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          '3D number must be valid'
-        );
-      }
-
-      if (threeDigitNumber < 0) {
-        return (
-          `Row ${rowNumber}: ` +
-          '3D number cannot be negative'
-        );
-      }
-
-      const threeDigitAmount =
-        Number(
-          row.threeDigitAmount || 0
-        );
-
-      if (
-        !Number.isFinite(
-          threeDigitAmount
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          '3D amount must be valid'
-        );
-      }
-
-      if (threeDigitAmount < 0) {
-        return t(
-          'invoice.errors.threeDigitAmountNegative',
-          {
-            row: rowNumber
-          }
-        );
-      }
-
-      const winThreeNumberType =
-        Number(
-          row.winThreeNumberType || 0
-        );
-
-      if (
-        !Number.isFinite(
-          winThreeNumberType
-        )
-      ) {
-        return (
-          `Row ${rowNumber}: ` +
-          'Correct 3D value must be valid'
-        );
-      }
-
-      if (winThreeNumberType < 0) {
-        return t(
-          'invoice.errors.threeDigitTypeNegative',
-          {
-            row: rowNumber
-          }
-        );
+      if (!Number.isFinite(value) || value < 0) {
+        return locale.value === 'km'
+          ? `ជួរទី ${rowNumber}: តម្លៃ 3D មិនត្រឹមត្រូវ`
+          : `Row ${rowNumber}: 3D number must be valid and non-negative`;
       }
     }
   }
@@ -2571,111 +1237,47 @@ const validatePlayForm = () => {
   return '';
 };
 
-const buildPayload = () => {
-  return {
-    title:
-      playForm.value.title.trim(),
-
-    categoryIds:
-      playForm.value.categoryIds
-        .map(String),
-
-    productIds:
-      playForm.value.productIds
-        .map(String),
-
-    customerId:
-      playForm.value.customerId,
-
-    playDate:
-      formatDateForApi(
-        playForm.value.playDate
-      ),
-
-    twoDigitRate:
-      Number(
-        playForm.value.twoDigitRate ||
-        getPreferredRate(
-          TWO_DIGIT_RATE
-        ) ||
-        TWO_DIGIT_RATE
-      ),
-
-    threeDigitRate:
-      Number(
-        playForm.value.threeDigitRate ||
-        getPreferredRate(
-          THREE_DIGIT_RATE
-        ) ||
-        THREE_DIGIT_RATE
-      ),
-
-    rows: playRows.value.map(
-      (row) => ({
-        rowTitle:
-          row.rowTitle.trim(),
-
-        twoDigitNumber:
-          row.isTwoNumber
-            ? Number(
-                row.twoDigitNumber
-              )
-            : null,
-
-        threeDigitNumber:
-          row.isThreeNumber
-            ? Number(
-                row.threeDigitNumber
-              )
-            : null,
-
-        winTwoNumberType:
-          row.isTwoNumber
-            ? Number(
-                row.winTwoNumberType ||
-                0
-              )
-            : 0,
-
-        winThreeNumberType:
-          row.isThreeNumber
-            ? Number(
-                row.winThreeNumberType ||
-                0
-              )
-            : 0,
-
-        twoDigitAmount:
-          row.isTwoNumber
-            ? Number(
-                row.twoDigitAmount ||
-                0
-              )
-            : 0,
-
-        threeDigitAmount:
-          row.isThreeNumber
-            ? Number(
-                row.threeDigitAmount ||
-                0
-              )
-            : 0,
-
-        isTwoNumber:
-          Boolean(
-            row.isTwoNumber
-          ),
-
-        isThreeNumber:
-          Boolean(
-            row.isThreeNumber
-          ),
-
-        checkedStatus: false
-      })
-    )
-  };
-};
+const buildPayload = () => ({
+  title: playForm.value.title.trim(),
+  categoryIds: playForm.value.categoryIds.map(String),
+  productIds: playForm.value.productIds.map(String),
+  customerId: String(playForm.value.customerId),
+  playDate: formatDateForApi(playForm.value.playDate),
+  twoDigitRate: Number(
+    playForm.value.twoDigitRate ||
+      getPreferredRate(TWO_DIGIT_RATE) ||
+      TWO_DIGIT_RATE
+  ),
+  threeDigitRate: Number(
+    playForm.value.threeDigitRate ||
+      getPreferredRate(THREE_DIGIT_RATE) ||
+      THREE_DIGIT_RATE
+  ),
+  rows: playRows.value.map((row) => ({
+    rowTitle: row.rowTitle.trim(),
+    twoDigitNumber: row.isTwoNumber
+      ? Number(row.twoDigitNumber)
+      : null,
+    threeDigitNumber: row.isThreeNumber
+      ? Number(row.threeDigitNumber)
+      : null,
+    winTwoNumberType: row.isTwoNumber
+      ? Number(row.winTwoNumberType || 0)
+      : 0,
+    winThreeNumberType: row.isThreeNumber
+      ? Number(row.winThreeNumberType || 0)
+      : 0,
+    twoDigitAmount: row.isTwoNumber
+      ? Number(row.twoDigitAmount || 0)
+      : 0,
+    threeDigitAmount: row.isThreeNumber
+      ? Number(row.threeDigitAmount || 0)
+      : 0,
+    isTwoNumber: Boolean(row.isTwoNumber),
+    isThreeNumber: Boolean(row.isThreeNumber),
+    checkedStatus: false
+  }))
+});
 
 const saveLotteryPlay = async () => {
   try {
@@ -2687,77 +1289,81 @@ const saveLotteryPlay = async () => {
       applyDefaultRates: true
     });
 
-    const validationError =
-      validatePlayForm();
-
+    const validationError = validatePlayForm();
     if (validationError) {
-      errorMessage.value =
-        validationError;
-
+      errorMessage.value = validationError;
       return;
     }
 
     saving.value = true;
-
-    const payload =
-      buildPayload();
+    const payload = buildPayload();
 
     if (isEditMode.value) {
       await api.put(
         `/lottery-plays/${playForm.value.id}`,
         payload
       );
-
-      successMessage.value =
-        t('invoice.messages.updated');
+      successMessage.value = t('invoice.messages.updated');
     } else {
-      await api.post(
-        '/lottery-plays',
-        payload
-      );
-
-      successMessage.value =
-        t('invoice.messages.created');
+      await api.post('/lottery-plays', payload);
+      successMessage.value = t('invoice.messages.created');
     }
 
     dialogVisible.value = false;
-
     await fetchLotteryPlays();
   } catch (error) {
-    console.error(
-      'Save invoice error:',
-      error
-    );
-
+    console.error('Save invoice error:', error);
     errorMessage.value =
-      error.response?.data?.message ||
-      t('invoice.errors.save');
+      error.response?.data?.message || t('invoice.errors.save');
   } finally {
     saving.value = false;
+  }
+};
+
+/* --------------------------------------------------------------------------
+ * Detail and delete
+ * -------------------------------------------------------------------------- */
+
+const openDetailDialog = async (play) => {
+  try {
+    detailDialogVisible.value = true;
+    detailLoading.value = true;
+    selectedDetailPlay.value = play;
+    detailRows.value = getPlayRows(play);
+
+    const playId = play.id || play._id;
+    if (!playId) return;
+
+    const response = await api.get(`/lottery-plays/${playId}`);
+    const freshPlay = response.data?.data || play;
+
+    selectedDetailPlay.value = freshPlay;
+    detailRows.value = getPlayRows(freshPlay);
+  } catch (error) {
+    console.error('Fetch invoice detail error:', error);
+    errorMessage.value =
+      error.response?.data?.message || t('invoice.errors.detail');
+  } finally {
+    detailLoading.value = false;
   }
 };
 
 const openDeleteDialog = (play) => {
   errorMessage.value = '';
   successMessage.value = '';
-
   selectedDeletePlay.value = play;
   deleteDialogVisible.value = true;
 };
 
 const closeDeleteDialog = () => {
-  if (deleting.value) {
-    return;
-  }
+  if (deleting.value) return;
 
   deleteDialogVisible.value = false;
   selectedDeletePlay.value = null;
 };
 
 const confirmDeleteLotteryPlay = async () => {
-  if (!selectedDeletePlay.value) {
-    return;
-  }
+  if (!selectedDeletePlay.value) return;
 
   try {
     deleting.value = true;
@@ -2765,69 +1371,165 @@ const confirmDeleteLotteryPlay = async () => {
     successMessage.value = '';
 
     const playId =
-      selectedDeletePlay.value.id ||
-      selectedDeletePlay.value._id;
+      selectedDeletePlay.value.id || selectedDeletePlay.value._id;
 
-    await api.delete(
-      `/lottery-plays/${playId}`
-    );
+    await api.delete(`/lottery-plays/${playId}`);
 
-    successMessage.value =
-      t('invoice.messages.deleted');
-
+    successMessage.value = t('invoice.messages.deleted');
     deleteDialogVisible.value = false;
     selectedDeletePlay.value = null;
 
-    if (
-      lotteryPlays.value.length === 1 &&
-      page.value > 1
-    ) {
+    if (lotteryPlays.value.length === 1 && page.value > 1) {
       page.value -= 1;
     }
 
     await fetchLotteryPlays();
   } catch (error) {
-    console.error(
-      'Delete invoice error:',
-      error
-    );
-
+    console.error('Delete invoice error:', error);
     errorMessage.value =
-      error.response?.data?.message ||
-      t('invoice.errors.delete');
+      error.response?.data?.message || t('invoice.errors.delete');
   } finally {
     deleting.value = false;
   }
 };
 
-onMounted(async () => {
-  try {
-    await Promise.all([
-      fetchCategories(),
-      fetchProducts(),
-      fetchCustomers(),
-      fetchRates()
-    ]);
-  } catch (error) {
-    console.error(
-      'Initial reference data load error:',
-      error
-    );
+/* --------------------------------------------------------------------------
+ * Printing
+ * -------------------------------------------------------------------------- */
+
+const escapeHtml = (value) => {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+};
+
+const buildPrintHtml = (play) => {
+  const rows = getPlayRows(play);
+  const calculation = getPlayCalculation(
+    rows,
+    play?.twoDigitRate || 100,
+    play?.threeDigitRate || 100
+  );
+  const result = getPlayResultCalculation(calculation);
+  const totalColor = result.grandTotal >= 0 ? '#2563eb' : '#dc2626';
+
+  const bodyRows = rows
+    .map((row, index) => {
+      return `
+        <tr>
+          <td>(${index + 1})</td>
+          <td class="left">${escapeHtml(row.rowTitle || '')}</td>
+          <td>${row.isTwoNumber ? escapeHtml(formatPlainNumber(row.twoDigitNumber)) : ''}</td>
+          <td>${row.isThreeNumber ? escapeHtml(formatPlainNumber(row.threeDigitNumber)) : ''}</td>
+          <td>${row.isTwoNumber ? escapeHtml(formatNumberType(row.winTwoNumberType)) : ''}</td>
+          <td>${row.isThreeNumber ? escapeHtml(formatNumberType(row.winThreeNumberType)) : ''}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `<!doctype html>
+  <html lang="${locale.value === 'km' ? 'km' : 'en'}">
+    <head>
+      <meta charset="utf-8" />
+      <title>&#8203;</title>
+      <style>
+        *{box-sizing:border-box}body{margin:0;padding:16px;font-family:Inter,"Noto Sans Khmer",Arial,sans-serif;color:#111827}.invoice{max-width:820px;margin:auto}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:7px;text-align:center}th{font-weight:800}.left{text-align:left}.summary{margin-top:14px;font-weight:700}.line{display:flex;justify-content:space-between;gap:20px;margin:5px 0}.deduction{color:#dc2626}.total{margin-top:12px;padding-top:10px;border-top:1px solid #9ca3af;text-align:center;font-size:22px;font-weight:900;color:${totalColor}}@media print{body{padding:0}@page{margin:10mm}}
+      </style>
+    </head>
+    <body>
+      <div class="invoice">
+        <h2>${escapeHtml(play?.title || '')}</h2>
+        <p>${escapeHtml(getCustomerName(play))} — ${escapeHtml(formatDateOnly(play?.playDate || play?.createdAt))}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>${escapeHtml(t('invoice.columns.number'))}</th>
+              <th>${escapeHtml(t('invoice.print.rowTitle'))}</th>
+              <th>${escapeHtml(t('invoice.print.twoDigit'))}</th>
+              <th>${escapeHtml(t('invoice.print.threeDigit'))}</th>
+              <th>${escapeHtml(t('invoice.print.correctTwoDigit'))}</th>
+              <th>${escapeHtml(t('invoice.print.correctThreeDigit'))}</th>
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+        <div class="summary">
+          <div class="line"><span>${escapeHtml(t('invoice.print.twoDigit'))}</span><span>${formatPlayResult(calculation.twoDigitBaseTotal)} × ${formatRate(calculation.twoDigitRate)} = ${formatPlayResult(result.twoDigitResult)}</span></div>
+          <div class="line"><span>${escapeHtml(t('invoice.print.threeDigit'))}</span><span>${formatPlayResult(calculation.threeDigitBaseTotal)} × ${formatRate(calculation.threeDigitRate)} = ${formatPlayResult(result.threeDigitResult)}</span></div>
+          ${calculation.twoDigitCorrectTotal > 0 ? `<div class="line deduction"><span>${escapeHtml(t('invoice.print.correctTwoDigit'))}</span><span>${formatPlayResult(calculation.twoDigitCorrectTotal)} × ${TWO_DIGIT_WIN_MULTIPLIER} = -${formatPlayResult(result.twoDigitCorrectResult)}</span></div>` : ''}
+          ${calculation.threeDigitCorrectTotal > 0 ? `<div class="line deduction"><span>${escapeHtml(t('invoice.print.correctThreeDigit'))}</span><span>${formatPlayResult(calculation.threeDigitCorrectTotal)} × ${THREE_DIGIT_WIN_MULTIPLIER} = -${formatPlayResult(result.threeDigitCorrectResult)}</span></div>` : ''}
+          <div class="total">${escapeHtml(t('invoice.print.total'))}: ${formatSignedPlayResult(result.grandTotal)}</div>
+        </div>
+      </div>
+    </body>
+  </html>`;
+};
+
+const printLotteryPlay = async (play) => {
+  if (!play) return;
+
+  const playId = play.id || play._id;
+  const printWindow = window.open('', '_blank', 'width=900,height=750');
+
+  if (!printWindow) {
+    errorMessage.value = t('invoice.errors.popupBlocked');
+    return;
   }
 
+  try {
+    printingPlayId.value = playId;
+    let freshPlay = play;
+
+    if (playId) {
+      const response = await api.get(`/lottery-plays/${playId}`);
+      freshPlay = response.data?.data || play;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(buildPrintHtml(freshPlay));
+    printWindow.document.close();
+    printWindow.focus();
+
+    const startPrint = () => {
+      setTimeout(() => printWindow.print(), 250);
+    };
+
+    if (printWindow.document.readyState === 'complete') {
+      startPrint();
+    } else {
+      printWindow.onload = startPrint;
+    }
+  } catch (error) {
+    console.error('Print invoice error:', error);
+    printWindow.close();
+    errorMessage.value =
+      error.response?.data?.message || t('invoice.errors.print');
+  } finally {
+    printingPlayId.value = null;
+  }
+};
+
+/* --------------------------------------------------------------------------
+ * Initial load
+ * -------------------------------------------------------------------------- */
+
+onMounted(async () => {
+  await loadReferenceData({ force: true });
   await fetchLotteryPlays();
 });
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-7xl p-2 sm:p-4 lg:p-6">
-    <Card class="overflow-hidden">
+    <Card>
       <template #title>
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600"
-            >
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
               <i class="pi pi-file"></i>
             </div>
 
@@ -2837,10 +1539,12 @@ onMounted(async () => {
           </div>
 
           <Button
+            type="button"
             :label="t('invoice.addInvoice')"
             icon="pi pi-plus"
             size="small"
             class="shrink-0"
+            :loading="referenceLoading"
             @click="openCreateDialog"
           />
         </div>
@@ -2848,7 +1552,7 @@ onMounted(async () => {
 
       <template #content>
         <Message
-          v-if="errorMessage"
+          v-if="errorMessage && !dialogVisible"
           severity="error"
           class="mb-3"
           closable
@@ -2867,7 +1571,7 @@ onMounted(async () => {
           {{ successMessage }}
         </Message>
 
-        <!-- Mobile search and filters -->
+        <!-- Mobile filters -->
         <section class="mb-4 md:hidden">
           <div class="flex gap-2">
             <InputText
@@ -2878,19 +1582,19 @@ onMounted(async () => {
             />
 
             <Button
+              type="button"
               icon="pi pi-search"
               :aria-label="t('invoice.search')"
               @click="applyFilter"
             />
 
             <Button
+              type="button"
               icon="pi pi-filter"
               severity="secondary"
               outlined
               :aria-label="t('invoice.showFilters')"
-              :class="{
-                'border-primary text-primary': hasActiveFilters
-              }"
+              :class="{ 'border-primary text-primary': hasActiveFilters }"
               @click="mobileFiltersVisible = !mobileFiltersVisible"
             />
           </div>
@@ -2905,6 +1609,8 @@ onMounted(async () => {
               optionLabel="label"
               optionValue="value"
               :placeholder="t('invoice.allCategories')"
+              appendTo="body"
+              :baseZIndex="OVERLAY_Z_INDEX"
               class="w-full"
               showClear
               @change="onFilterCategoryChange"
@@ -2916,34 +1622,31 @@ onMounted(async () => {
               optionLabel="label"
               optionValue="value"
               :placeholder="t('invoice.allProducts')"
+              appendTo="body"
+              :baseZIndex="OVERLAY_Z_INDEX"
               class="w-full"
               showClear
               filter
             />
 
-            <div>
-              <label class="mb-1 block text-xs font-semibold text-gray-600">
-                {{ t('invoice.invoiceDateRange') }}
-              </label>
-
-              <DatePicker
-                v-model="filterDateRange"
-                selectionMode="range"
-                dateFormat="yy-mm-dd"
-                :placeholder="t('invoice.selectDateRange')"
-                class="w-full"
-                input-class="w-full"
-                showIcon
-                iconDisplay="input"
-                showButtonBar
-                fluid
-                :manualInput="false"
-                :numberOfMonths="1"
-              />
-            </div>
+            <DatePicker
+              v-model="filterDateRange"
+              selectionMode="range"
+              dateFormat="yy-mm-dd"
+              :placeholder="t('invoice.selectDateRange')"
+              appendTo="body"
+              :baseZIndex="OVERLAY_Z_INDEX"
+              class="w-full"
+              input-class="w-full"
+              showIcon
+              iconDisplay="input"
+              showButtonBar
+              :manualInput="false"
+            />
 
             <div class="grid grid-cols-2 gap-2">
               <Button
+                type="button"
                 :label="t('invoice.reset')"
                 icon="pi pi-refresh"
                 severity="secondary"
@@ -2952,6 +1655,7 @@ onMounted(async () => {
               />
 
               <Button
+                type="button"
                 :label="t('invoice.apply')"
                 icon="pi pi-check"
                 @click="applyFilter"
@@ -2961,9 +1665,7 @@ onMounted(async () => {
         </section>
 
         <!-- Desktop filters -->
-        <section
-          class="mb-4 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_180px_280px_auto]"
-        >
+        <section class="mb-4 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_180px_280px_auto]">
           <InputText
             v-model="search"
             :placeholder="t('invoice.searchInvoiceOrRow')"
@@ -2977,6 +1679,8 @@ onMounted(async () => {
             optionLabel="label"
             optionValue="value"
             :placeholder="t('invoice.fields.category')"
+            appendTo="body"
+            :baseZIndex="OVERLAY_Z_INDEX"
             class="w-full"
             showClear
             @change="onFilterCategoryChange"
@@ -2988,6 +1692,8 @@ onMounted(async () => {
             optionLabel="label"
             optionValue="value"
             :placeholder="t('invoice.fields.product')"
+            appendTo="body"
+            :baseZIndex="OVERLAY_Z_INDEX"
             class="w-full"
             showClear
             filter
@@ -2998,18 +1704,19 @@ onMounted(async () => {
             selectionMode="range"
             dateFormat="yy-mm-dd"
             :placeholder="t('invoice.invoiceDateRange')"
+            appendTo="body"
+            :baseZIndex="OVERLAY_Z_INDEX"
             class="w-full"
             input-class="w-full"
             showIcon
             iconDisplay="input"
             showButtonBar
-            fluid
             :manualInput="false"
-            :numberOfMonths="1"
           />
 
           <div class="flex gap-2">
             <Button
+              type="button"
               :label="t('invoice.search')"
               icon="pi pi-search"
               class="flex-1"
@@ -3017,6 +1724,7 @@ onMounted(async () => {
             />
 
             <Button
+              type="button"
               icon="pi pi-refresh"
               severity="secondary"
               outlined
@@ -3026,7 +1734,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <!-- Mobile list -->
+        <!-- Mobile invoice list -->
         <section class="md:hidden">
           <div v-if="loading" class="py-12 text-center">
             <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
@@ -3048,17 +1756,11 @@ onMounted(async () => {
                   </h2>
 
                   <div class="mt-1 text-xs text-gray-500">
-                    {{
-                      formatDateOnly(
-                        invoice.playDate || invoice.createdAt
-                      )
-                    }}
+                    {{ formatDateOnly(invoice.playDate || invoice.createdAt) }}
                   </div>
                 </div>
 
-                <span
-                  class="max-w-32 shrink-0 truncate rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700"
-                >
+                <span class="max-w-32 shrink-0 truncate rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
                   {{ getCategoryName(invoice) }}
                 </span>
               </div>
@@ -3085,41 +1787,39 @@ onMounted(async () => {
 
               <div class="mt-3 grid grid-cols-2 gap-2">
                 <Button
+                  type="button"
                   :label="t('invoice.view')"
                   icon="pi pi-eye"
                   severity="help"
                   outlined
-                  class="w-full"
                   @click="openDetailDialog(invoice)"
                 />
 
                 <Button
+                  type="button"
                   :label="t('invoice.printButton')"
                   icon="pi pi-print"
                   severity="secondary"
                   outlined
-                  class="w-full"
-                  :loading="
-                    printingPlayId === (invoice.id || invoice._id)
-                  "
+                  :loading="printingPlayId === (invoice.id || invoice._id)"
                   @click="printLotteryPlay(invoice)"
                 />
 
                 <Button
+                  type="button"
                   :label="t('invoice.edit')"
                   icon="pi pi-pencil"
                   severity="info"
                   outlined
-                  class="w-full"
                   @click="openEditDialog(invoice)"
                 />
 
                 <Button
+                  type="button"
                   :label="t('invoice.delete')"
                   icon="pi pi-trash"
                   severity="danger"
                   outlined
-                  class="w-full"
                   @click="openDeleteDialog(invoice)"
                 />
               </div>
@@ -3137,30 +1837,25 @@ onMounted(async () => {
               class="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-2"
             >
               <Button
+                type="button"
                 icon="pi pi-chevron-left"
                 severity="secondary"
                 text
                 rounded
-                :aria-label="t('invoice.previousPage')"
                 :disabled="page <= 1 || loading"
                 @click="goToPreviousPage"
               />
 
               <span class="text-sm font-medium text-gray-600">
-                {{
-                  t('invoice.pageOf', {
-                    page,
-                    total: totalPages
-                  })
-                }}
+                {{ t('invoice.pageOf', { page, total: totalPages }) }}
               </span>
 
               <Button
+                type="button"
                 icon="pi pi-chevron-right"
                 severity="secondary"
                 text
                 rounded
-                :aria-label="t('invoice.nextPage')"
                 :disabled="page >= totalPages || loading"
                 @click="goToNextPage"
               />
@@ -3168,7 +1863,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <!-- Desktop table -->
+        <!-- Desktop invoice table -->
         <section class="hidden md:block">
           <DataTable
             :value="lotteryPlays"
@@ -3176,7 +1871,7 @@ onMounted(async () => {
             lazy
             paginator
             scrollable
-            dataKey="id"
+            dataKey="_id"
             :rows="limit"
             :first="(page - 1) * limit"
             :totalRecords="totalRecords"
@@ -3194,21 +1889,15 @@ onMounted(async () => {
             </Column>
 
             <Column :header="t('invoice.columns.category')" style="min-width: 150px">
-              <template #body="{ data }">
-                {{ getCategoryName(data) }}
-              </template>
+              <template #body="{ data }">{{ getCategoryName(data) }}</template>
             </Column>
 
             <Column :header="t('invoice.columns.product')" style="min-width: 150px">
-              <template #body="{ data }">
-                {{ getProductName(data) }}
-              </template>
+              <template #body="{ data }">{{ getProductName(data) }}</template>
             </Column>
 
             <Column :header="t('invoice.columns.customer')" style="min-width: 180px">
-              <template #body="{ data }">
-                {{ getCustomerName(data) }}
-              </template>
+              <template #body="{ data }">{{ getCustomerName(data) }}</template>
             </Column>
 
             <Column :header="t('invoice.columns.invoiceDate')" style="min-width: 130px">
@@ -3225,40 +1914,10 @@ onMounted(async () => {
             >
               <template #body="{ data }">
                 <div class="flex gap-2">
-                  <Button
-                    icon="pi pi-eye"
-                    size="small"
-                    severity="help"
-                    :title="t('invoice.view')"
-                    @click="openDetailDialog(data)"
-                  />
-
-                  <Button
-                    icon="pi pi-print"
-                    size="small"
-                    severity="secondary"
-                    :title="t('invoice.printButton')"
-                    :loading="
-                      printingPlayId === (data.id || data._id)
-                    "
-                    @click="printLotteryPlay(data)"
-                  />
-
-                  <Button
-                    icon="pi pi-pencil"
-                    size="small"
-                    severity="info"
-                    :title="t('invoice.edit')"
-                    @click="openEditDialog(data)"
-                  />
-
-                  <Button
-                    icon="pi pi-trash"
-                    size="small"
-                    severity="danger"
-                    :title="t('invoice.delete')"
-                    @click="openDeleteDialog(data)"
-                  />
+                  <Button type="button" icon="pi pi-eye" size="small" severity="help" @click="openDetailDialog(data)" />
+                  <Button type="button" icon="pi pi-print" size="small" severity="secondary" :loading="printingPlayId === (data.id || data._id)" @click="printLotteryPlay(data)" />
+                  <Button type="button" icon="pi pi-pencil" size="small" severity="info" @click="openEditDialog(data)" />
+                  <Button type="button" icon="pi pi-trash" size="small" severity="danger" @click="openDeleteDialog(data)" />
                 </div>
               </template>
             </Column>
@@ -3273,74 +1932,54 @@ onMounted(async () => {
       </template>
     </Card>
 
-    <!-- Create / edit invoice -->
+    <!-- Create / edit invoice dialog -->
     <Dialog
       v-model:visible="dialogVisible"
+      appendTo="body"
       modal
-      :header="
-        isEditMode
-          ? t('invoice.dialogs.editTitle')
-          : t('invoice.dialogs.createTitle')
-      "
-      :style="{
-        width: '96vw',
-        maxWidth: '1180px'
-      }"
-      :breakpoints="{
-        '960px': '98vw',
-        '640px': '100vw'
-      }"
+      position="center"
+      :autoZIndex="true"
+      :baseZIndex="20000"
+      :header="isEditMode ? t('invoice.dialogs.editTitle') : t('invoice.dialogs.createTitle')"
+      :style="{ width: 'calc(100vw - 24px)', maxWidth: '1180px', maxHeight: 'calc(100dvh - 24px)' }"
       :closable="!saving"
+      :closeOnEscape="!saving"
       :draggable="false"
       :dismissableMask="false"
       :blockScroll="true"
       class="invoice-form-dialog"
     >
-      <div class="invoice-form-content space-y-4">
-        <Message
-          v-if="errorMessage"
-          severity="error"
-          closable
-          @close="errorMessage = ''"
-        >
+      <div class="space-y-4">
+        <Message v-if="errorMessage" severity="error" closable @close="errorMessage = ''">
           {{ errorMessage }}
         </Message>
 
-        <!-- Invoice information -->
         <section class="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
           <h2 class="mb-3 text-base font-bold text-gray-900">
             {{ t('invoice.sections.information') }}
           </h2>
 
-          <div
-            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            <div class="sm:col-span-2 lg:col-span-2">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.invoiceName') }}
               </label>
-
-              <InputText
-                v-model="playForm.title"
-                class="w-full"
-                :placeholder="t('invoice.placeholders.invoiceName')"
-                autocomplete="off"
-              />
+              <InputText v-model="playForm.title" class="w-full" :placeholder="t('invoice.placeholders.invoiceName')" />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.invoiceDate') }}
               </label>
-
               <DatePicker
                 v-model="playForm.playDate"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
                 input-class="w-full"
                 dateFormat="yy-mm-dd"
                 showIcon
                 iconDisplay="input"
-                fluid
                 :manualInput="false"
               />
             </div>
@@ -3349,17 +1988,19 @@ onMounted(async () => {
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.customer') }}
               </label>
-
               <Select
                 v-model="playForm.customerId"
                 :options="customerOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.customer')"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
                 showClear
                 filter
-                :filterPlaceholder="t('invoice.placeholders.searchCustomer')"
+                :loading="referenceLoading"
+                :emptyMessage="t('customer.noCustomers')"
               />
             </div>
 
@@ -3367,41 +2008,42 @@ onMounted(async () => {
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.category') }}
               </label>
-
               <MultiSelect
                 v-model="playForm.categoryIds"
                 :options="categoryOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.category')"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
                 display="chip"
                 showClear
                 filter
+                :loading="referenceLoading"
                 :maxSelectedLabels="3"
-                selectedItemsLabel="{0} selected"
               />
             </div>
 
-            <div class="sm:col-span-2 lg:col-span-1">
+            <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.product') }}
               </label>
-
               <MultiSelect
                 v-model="playForm.productIds"
                 :options="productOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.product')"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
                 display="chip"
                 showClear
                 filter
+                :loading="referenceLoading"
                 :selectionLimit="2"
-                :filterPlaceholder="t('invoice.placeholders.searchProduct')"
                 :maxSelectedLabels="2"
-                selectedItemsLabel="{0} selected"
                 @change="onProductSelectionChange"
               />
             </div>
@@ -3410,18 +2052,16 @@ onMounted(async () => {
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.twoDigitRate') }}
               </label>
-
               <Select
                 v-model="playForm.twoDigitRate"
                 :options="twoDigitRateOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.twoDigitRate')"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
-                :disabled="
-                  !hasTwoDigitProduct ||
-                  !twoDigitRateOptions.length
-                "
+                :disabled="!hasTwoDigitProduct"
               />
             </div>
 
@@ -3429,42 +2069,31 @@ onMounted(async () => {
               <label class="mb-1 block text-sm font-semibold text-gray-700">
                 {{ t('invoice.fields.threeDigitRate') }}
               </label>
-
               <Select
                 v-model="playForm.threeDigitRate"
                 :options="threeDigitRateOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('invoice.placeholders.threeDigitRate')"
+                appendTo="body"
+                :baseZIndex="OVERLAY_Z_INDEX"
                 class="w-full"
-                :disabled="
-                  !hasThreeDigitProduct ||
-                  !threeDigitRateOptions.length
-                "
+                :disabled="!hasThreeDigitProduct"
               />
             </div>
           </div>
         </section>
 
-        <!-- Invoice rows -->
         <section>
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-bold text-gray-900">
                 {{ t('invoice.sections.rows') }}
               </h2>
-              <p class="text-xs text-gray-500">
-                {{ t('invoice.rowsHint') }}
-              </p>
+              <p class="text-xs text-gray-500">{{ t('invoice.rowsHint') }}</p>
             </div>
 
-            <Button
-              :label="t('invoice.addRow')"
-              icon="pi pi-plus"
-              size="small"
-              class="shrink-0"
-              @click="addPlayRow"
-            />
+            <Button type="button" :label="t('invoice.addRow')" icon="pi pi-plus" size="small" @click="addPlayRow" />
           </div>
 
           <div class="space-y-3">
@@ -3475,39 +2104,15 @@ onMounted(async () => {
             >
               <div class="mb-3 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                  <span
-                    class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700"
-                  >
+                  <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700">
                     {{ index + 1 }}
                   </span>
-
-                  <span class="font-bold text-gray-900">
-                    {{ t('invoice.invoiceRow') }}
-                  </span>
+                  <span class="font-bold text-gray-900">{{ t('invoice.invoiceRow') }}</span>
                 </div>
 
                 <div class="flex gap-2">
-                  <Button
-                    icon="pi pi-copy"
-                    size="small"
-                    severity="secondary"
-                    outlined
-                    rounded
-                    :aria-label="t('invoice.duplicateRow')"
-                    :title="t('invoice.duplicateRow')"
-                    @click="duplicatePlayRow(index)"
-                  />
-
-                  <Button
-                    icon="pi pi-trash"
-                    size="small"
-                    severity="danger"
-                    outlined
-                    rounded
-                    :aria-label="t('invoice.removeRow')"
-                    :title="t('invoice.removeRow')"
-                    @click="removePlayRow(index)"
-                  />
+                  <Button type="button" icon="pi pi-copy" size="small" severity="secondary" outlined rounded @click="duplicatePlayRow(index)" />
+                  <Button type="button" icon="pi pi-trash" size="small" severity="danger" outlined rounded @click="removePlayRow(index)" />
                 </div>
               </div>
 
@@ -3515,176 +2120,56 @@ onMounted(async () => {
                 <label class="mb-1 block text-sm font-semibold text-gray-700">
                   {{ t('invoice.fields.rowName') }}
                 </label>
-
-                <InputText
-                  v-model="row.rowTitle"
-                  class="w-full"
-                  :placeholder="t('invoice.placeholders.rowName')"
-                  autocomplete="off"
-                />
+                <InputText v-model="row.rowTitle" class="w-full" :placeholder="t('invoice.placeholders.rowName')" />
               </div>
 
               <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <!-- 2D card -->
-                <section
-                  :class="[
-                    'rounded-xl border p-3 transition sm:p-4',
-                    row.isTwoNumber
-                      ? 'border-blue-300 bg-blue-50/50'
-                      : 'border-gray-200 bg-gray-50'
-                  ]"
-                >
+                <section :class="['rounded-xl border p-3 sm:p-4', row.isTwoNumber ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200 bg-gray-50']">
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">2D</div>
-                      <div class="text-xs text-gray-500">
-                        {{ t('invoice.enableTwoDigit') }}
-                      </div>
+                      <div class="text-xs text-gray-500">{{ t('invoice.enableTwoDigit') }}</div>
                     </div>
-
-                    <ToggleSwitch
-                      v-model="row.isTwoNumber"
-                      :disabled="!hasTwoDigitProduct"
-                    />
+                    <ToggleSwitch v-model="row.isTwoNumber" :disabled="!hasTwoDigitProduct" />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.twoDigitNumber') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.twoDigitNumber"
-                        class="w-full"
-                        input-class="w-full"
-                        placeholder="Enter 2D number"
-                        :min="0"
-                        :disabled="!row.isTwoNumber"
-                        :useGrouping="false"
-                        :inputProps="{
-                          inputmode: 'numeric'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.twoDigitNumber') }}</label>
+                      <InputNumber v-model="row.twoDigitNumber" class="w-full" input-class="w-full" :min="0" :disabled="!row.isTwoNumber" :useGrouping="false" />
                     </div>
-
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.twoDigitAmount') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.twoDigitAmount"
-                        class="w-full"
-                        input-class="w-full"
-                        :placeholder="t('invoice.placeholders.amount')"
-                        :min="0"
-                        :disabled="!row.isTwoNumber"
-                        :inputProps="{
-                          inputmode: 'decimal'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.twoDigitAmount') }}</label>
+                      <InputNumber v-model="row.twoDigitAmount" class="w-full" input-class="w-full" :min="0" :disabled="!row.isTwoNumber" />
                     </div>
-
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.correctTwoDigit') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.winTwoNumberType"
-                        class="w-full"
-                        input-class="w-full"
-                        :placeholder="t('invoice.placeholders.type')"
-                        :min="0"
-                        :disabled="!row.isTwoNumber"
-                        :useGrouping="false"
-                        :inputProps="{
-                          inputmode: 'numeric'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.correctTwoDigit') }}</label>
+                      <InputNumber v-model="row.winTwoNumberType" class="w-full" input-class="w-full" :min="0" :disabled="!row.isTwoNumber" :useGrouping="false" />
                     </div>
                   </div>
                 </section>
 
-                <!-- 3D card -->
-                <section
-                  :class="[
-                    'rounded-xl border p-3 transition sm:p-4',
-                    row.isThreeNumber
-                      ? 'border-violet-300 bg-violet-50/50'
-                      : 'border-gray-200 bg-gray-50'
-                  ]"
-                >
+                <section :class="['rounded-xl border p-3 sm:p-4', row.isThreeNumber ? 'border-violet-300 bg-violet-50/50' : 'border-gray-200 bg-gray-50']">
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">3D</div>
-                      <div class="text-xs text-gray-500">
-                        {{ t('invoice.enableThreeDigit') }}
-                      </div>
+                      <div class="text-xs text-gray-500">{{ t('invoice.enableThreeDigit') }}</div>
                     </div>
-
-                    <ToggleSwitch
-                      v-model="row.isThreeNumber"
-                      :disabled="!hasThreeDigitProduct"
-                    />
+                    <ToggleSwitch v-model="row.isThreeNumber" :disabled="!hasThreeDigitProduct" />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.threeDigitNumber') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.threeDigitNumber"
-                        class="w-full"
-                        input-class="w-full"
-                        placeholder="Enter 3D number"
-                        :min="0"
-                        :disabled="!row.isThreeNumber"
-                        :useGrouping="false"
-                        :inputProps="{
-                          inputmode: 'numeric'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.threeDigitNumber') }}</label>
+                      <InputNumber v-model="row.threeDigitNumber" class="w-full" input-class="w-full" :min="0" :disabled="!row.isThreeNumber" :useGrouping="false" />
                     </div>
-
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.threeDigitAmount') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.threeDigitAmount"
-                        class="w-full"
-                        input-class="w-full"
-                        :placeholder="t('invoice.placeholders.amount')"
-                        :min="0"
-                        :disabled="!row.isThreeNumber"
-                        :inputProps="{
-                          inputmode: 'decimal'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.threeDigitAmount') }}</label>
+                      <InputNumber v-model="row.threeDigitAmount" class="w-full" input-class="w-full" :min="0" :disabled="!row.isThreeNumber" />
                     </div>
-
                     <div>
-                      <label class="mb-1 block text-xs font-semibold text-gray-600">
-                        {{ t('invoice.fields.correctThreeDigit') }}
-                      </label>
-
-                      <InputNumber
-                        v-model="row.winThreeNumberType"
-                        class="w-full"
-                        input-class="w-full"
-                        :placeholder="t('invoice.placeholders.type')"
-                        :min="0"
-                        :disabled="!row.isThreeNumber"
-                        :useGrouping="false"
-                        :inputProps="{
-                          inputmode: 'numeric'
-                        }"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.correctThreeDigit') }}</label>
+                      <InputNumber v-model="row.winThreeNumberType" class="w-full" input-class="w-full" :min="0" :disabled="!row.isThreeNumber" :useGrouping="false" />
                     </div>
                   </div>
                 </section>
@@ -3693,401 +2178,115 @@ onMounted(async () => {
           </div>
         </section>
 
-        <!-- Total -->
-        <section
-          class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center sm:flex sm:items-center sm:justify-between sm:text-left"
-        >
+        <section class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center sm:flex sm:items-center sm:justify-between sm:text-left">
           <div>
-            <div class="text-sm font-medium text-gray-500">
-              {{ t('invoice.fields.grandTotal') }}
-            </div>
-            <div class="text-xs text-gray-400">
-              {{ t('invoice.calculatedAutomatically') }}
-            </div>
+            <div class="text-sm font-medium text-gray-500">{{ t('invoice.fields.grandTotal') }}</div>
+            <div class="text-xs text-gray-400">{{ t('invoice.calculatedAutomatically') }}</div>
           </div>
 
-          <div
-            class="mt-2 text-3xl font-extrabold sm:mt-0"
-            :class="
-              getGrandTotalColorClass(
-                formResultCalculation.grandTotal
-              )
-            "
-          >
-            {{
-              formatSignedPlayResult(
-                formResultCalculation.grandTotal
-              )
-            }}
+          <div class="mt-2 text-3xl font-extrabold sm:mt-0" :class="getGrandTotalColorClass(formResultCalculation.grandTotal)">
+            {{ formatSignedPlayResult(formResultCalculation.grandTotal) }}
           </div>
         </section>
       </div>
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end">
-          <Button
-            :label="t('invoice.cancel')"
-            severity="secondary"
-            outlined
-            :disabled="saving"
-            @click="dialogVisible = false"
-          />
-
-          <Button
-            :label="
-              isEditMode
-                ? t('invoice.updateInvoice')
-                : t('invoice.createInvoice')
-            "
-            icon="pi pi-save"
-            :loading="saving"
-            @click="saveLotteryPlay"
-          />
+          <Button type="button" :label="t('invoice.cancel')" severity="secondary" outlined :disabled="saving" @click="dialogVisible = false" />
+          <Button type="button" :label="isEditMode ? t('invoice.updateInvoice') : t('invoice.createInvoice')" icon="pi pi-save" :loading="saving" @click="saveLotteryPlay" />
         </div>
       </template>
     </Dialog>
 
-    <!-- Invoice details -->
+    <!-- Detail dialog -->
     <Dialog
       v-model:visible="detailDialogVisible"
+      appendTo="body"
       modal
-      :header="
-        selectedDetailPlay?.title ||
-        t('invoice.dialogs.detailsTitle')
-      "
-      :style="{
-        width: '96vw',
-        maxWidth: '760px'
-      }"
-      :breakpoints="{
-        '640px': '100vw'
-      }"
+      :autoZIndex="true"
+      :baseZIndex="20000"
+      :header="selectedDetailPlay?.title || t('invoice.dialogs.detailsTitle')"
+      :style="{ width: 'calc(100vw - 24px)', maxWidth: '760px', maxHeight: 'calc(100dvh - 24px)' }"
       :draggable="false"
       :blockScroll="true"
       class="invoice-detail-dialog"
     >
       <div class="space-y-4">
-        <Message v-if="detailLoading" severity="info">
-          {{ t('invoice.loadingInvoice') }}
-        </Message>
+        <Message v-if="detailLoading" severity="info">{{ t('invoice.loadingInvoice') }}</Message>
 
-        <div
-          v-if="selectedDetailPlay"
-          class="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-sm"
-        >
-          <div class="min-w-0">
-            <div class="text-xs text-gray-500">
-              {{ t('invoice.fields.customer') }}
-            </div>
-            <div class="mt-1 truncate font-semibold">
-              {{ getCustomerName(selectedDetailPlay) }}
-            </div>
-          </div>
-
-          <div class="min-w-0">
-            <div class="text-xs text-gray-500">
-              {{ t('invoice.fields.date') }}
-            </div>
-            <div class="mt-1 font-semibold">
-              {{
-                formatDateOnly(
-                  selectedDetailPlay.playDate ||
-                    selectedDetailPlay.createdAt
-                )
-              }}
-            </div>
-          </div>
-
-          <div class="min-w-0">
-            <div class="text-xs text-gray-500">
-              {{ t('invoice.fields.category') }}
-            </div>
-            <div class="mt-1 truncate font-semibold">
-              {{ getCategoryName(selectedDetailPlay) }}
-            </div>
-          </div>
-
-          <div class="min-w-0">
-            <div class="text-xs text-gray-500">
-              {{ t('invoice.fields.product') }}
-            </div>
-            <div class="mt-1 truncate font-semibold">
-              {{ getProductName(selectedDetailPlay) }}
-            </div>
-          </div>
+        <div v-if="selectedDetailPlay" class="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-sm">
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.customer') }}</div><div class="mt-1 font-semibold">{{ getCustomerName(selectedDetailPlay) }}</div></div>
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.date') }}</div><div class="mt-1 font-semibold">{{ formatDateOnly(selectedDetailPlay.playDate || selectedDetailPlay.createdAt) }}</div></div>
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.category') }}</div><div class="mt-1 font-semibold">{{ getCategoryName(selectedDetailPlay) }}</div></div>
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.product') }}</div><div class="mt-1 font-semibold">{{ getProductName(selectedDetailPlay) }}</div></div>
         </div>
 
-        <!-- Mobile detail rows -->
-        <div class="space-y-2 sm:hidden">
-          <article
-            v-for="row in detailDisplayRows"
-            :key="row.sourceIndex"
-            class="rounded-xl border border-gray-200 p-3"
-          >
-            <div class="mb-3 flex items-center justify-between gap-2">
-              <span class="text-sm text-gray-500">
-                {{ t('invoice.rowNumber', { number: row.sourceIndex }) }}
-              </span>
-              <span class="truncate font-semibold">{{ row.rowTitle }}</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">2D</div>
-                <div class="mt-1 text-lg font-bold">
-                  {{
-                    row.twoDigitNumber !== null
-                      ? formatPlainNumber(row.twoDigitNumber)
-                      : '-'
-                  }}
-                </div>
-              </div>
-
-              <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">3D</div>
-                <div class="mt-1 text-lg font-bold">
-                  {{
-                    row.threeDigitNumber !== null
-                      ? formatPlainNumber(row.threeDigitNumber)
-                      : '-'
-                  }}
-                </div>
-              </div>
-
-              <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">
-                  {{ t('invoice.fields.correctTwoDigit') }}
-                </div>
-                <div class="mt-1 font-semibold">
-                  {{ row.twoDigitType || '-' }}
-                </div>
-              </div>
-
-              <div class="rounded-lg bg-gray-50 p-2 text-center">
-                <div class="text-xs text-gray-500">
-                  {{ t('invoice.fields.correctThreeDigit') }}
-                </div>
-                <div class="mt-1 font-semibold">
-                  {{ row.threeDigitType || '-' }}
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <div
-            v-if="!detailDisplayRows.length"
-            class="rounded-xl border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500"
-          >
-            {{ t('invoice.noRows') }}
-          </div>
-        </div>
-
-        <!-- Desktop detail rows -->
-        <div
-          class="hidden overflow-x-auto rounded-xl border border-gray-200 sm:block"
-        >
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
           <table class="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr class="text-center font-bold">
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.columns.number') }}
-                </th>
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.print.rowTitle') }}
-                </th>
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.print.twoDigit') }}
-                </th>
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.print.threeDigit') }}
-                </th>
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.print.correctTwoDigit') }}
-                </th>
-                <th class="border-b border-gray-200 px-3 py-2">
-                  {{ t('invoice.print.correctThreeDigit') }}
-                </th>
+                <th class="border-b px-3 py-2">{{ t('invoice.columns.number') }}</th>
+                <th class="border-b px-3 py-2">{{ t('invoice.print.rowTitle') }}</th>
+                <th class="border-b px-3 py-2">{{ t('invoice.print.twoDigit') }}</th>
+                <th class="border-b px-3 py-2">{{ t('invoice.print.threeDigit') }}</th>
+                <th class="border-b px-3 py-2">{{ t('invoice.print.correctTwoDigit') }}</th>
+                <th class="border-b px-3 py-2">{{ t('invoice.print.correctThreeDigit') }}</th>
               </tr>
             </thead>
-
             <tbody>
-              <tr
-                v-for="row in detailDisplayRows"
-                :key="row.sourceIndex"
-                class="border-b border-gray-200 text-center last:border-b-0"
-              >
-                <td class="px-3 py-2 font-medium">({{ row.sourceIndex }})</td>
+              <tr v-for="row in detailDisplayRows" :key="row.sourceIndex" class="border-b text-center last:border-b-0">
+                <td class="px-3 py-2">({{ row.sourceIndex }})</td>
                 <td class="px-3 py-2 font-medium">{{ row.rowTitle }}</td>
-                <td class="px-3 py-2 font-semibold">
-                  <span v-if="row.twoDigitNumber !== null">
-                    {{ formatPlainNumber(row.twoDigitNumber) }}
-                  </span>
-                </td>
-                <td class="px-3 py-2 font-semibold">
-                  <span v-if="row.threeDigitNumber !== null">
-                    {{ formatPlainNumber(row.threeDigitNumber) }}
-                  </span>
-                </td>
+                <td class="px-3 py-2">{{ row.twoDigitNumber !== null ? formatPlainNumber(row.twoDigitNumber) : '' }}</td>
+                <td class="px-3 py-2">{{ row.threeDigitNumber !== null ? formatPlainNumber(row.threeDigitNumber) : '' }}</td>
                 <td class="px-3 py-2">{{ row.twoDigitType }}</td>
                 <td class="px-3 py-2">{{ row.threeDigitType }}</td>
               </tr>
-
-              <tr v-if="!detailDisplayRows.length">
-                <td colspan="6" class="px-3 py-6 text-center text-gray-500">
-                  {{ t('invoice.noRows') }}
-                </td>
-              </tr>
+              <tr v-if="!detailDisplayRows.length"><td colspan="6" class="px-3 py-6 text-center text-gray-500">{{ t('invoice.noRows') }}</td></tr>
             </tbody>
           </table>
         </div>
 
-        <section class="rounded-xl border border-gray-200 p-3 sm:p-4">
+        <section class="rounded-xl border border-gray-200 p-4">
           <div class="space-y-2 text-sm">
-            <div class="flex items-center justify-between gap-3">
-              <span class="font-semibold">
-                {{ t('invoice.print.twoDigit') }}
-              </span>
-              <span class="text-right">
-                {{ formatPlainNumber(detailCalculation.twoDigitBaseTotal) }}
-                × {{ formatRate(detailCalculation.twoDigitRate) }} =
-                {{ formatPlayResult(detailResultCalculation.twoDigitResult) }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between gap-3">
-              <span class="font-semibold">
-                {{ t('invoice.print.threeDigit') }}
-              </span>
-              <span class="text-right">
-                {{ formatPlainNumber(detailCalculation.threeDigitBaseTotal) }}
-                × {{ formatRate(detailCalculation.threeDigitRate) }} =
-                {{ formatPlayResult(detailResultCalculation.threeDigitResult) }}
-              </span>
-            </div>
-
-            <div
-              v-if="detailCalculation.twoDigitCorrectTotal > 0"
-              class="flex items-center justify-between gap-3"
-            >
-              <span class="font-semibold">
-                {{ t('invoice.print.correctTwoDigit') }}
-              </span>
-              <span class="text-right text-red-600">
-                {{ formatPlainNumber(detailCalculation.twoDigitCorrectTotal) }}
-                × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -
-                {{
-                  formatPlayResult(
-                    detailResultCalculation.twoDigitCorrectResult
-                  )
-                }}
-              </span>
-            </div>
-
-            <div
-              v-if="detailCalculation.threeDigitCorrectTotal > 0"
-              class="flex items-center justify-between gap-3"
-            >
-              <span class="font-semibold">
-                {{ t('invoice.print.correctThreeDigit') }}
-              </span>
-              <span class="text-right text-red-600">
-                {{
-                  formatPlainNumber(
-                    detailCalculation.threeDigitCorrectTotal
-                  )
-                }}
-                × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -
-                {{
-                  formatPlayResult(
-                    detailResultCalculation.threeDigitCorrectResult
-                  )
-                }}
-              </span>
-            </div>
-
-            <div class="my-3 border-t border-gray-200"></div>
-
-            <div
-              class="flex items-center justify-between text-xl font-bold"
-              :class="
-                getGrandTotalColorClass(
-                  detailResultCalculation.grandTotal
-                )
-              "
-            >
-              <span>{{ t('invoice.print.total') }}</span>
-              <span>
-                {{
-                  formatSignedPlayResult(
-                    detailResultCalculation.grandTotal
-                  )
-                }}
-              </span>
-            </div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">{{ t('invoice.print.twoDigit') }}</span><span>{{ formatPlainNumber(detailCalculation.twoDigitBaseTotal) }} × {{ formatRate(detailCalculation.twoDigitRate) }} = {{ formatPlayResult(detailResultCalculation.twoDigitResult) }}</span></div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">{{ t('invoice.print.threeDigit') }}</span><span>{{ formatPlainNumber(detailCalculation.threeDigitBaseTotal) }} × {{ formatRate(detailCalculation.threeDigitRate) }} = {{ formatPlayResult(detailResultCalculation.threeDigitResult) }}</span></div>
+            <div v-if="detailCalculation.twoDigitCorrectTotal > 0" class="flex justify-between gap-3 text-red-600"><span>{{ t('invoice.print.correctTwoDigit') }}</span><span>{{ formatPlainNumber(detailCalculation.twoDigitCorrectTotal) }} × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(detailResultCalculation.twoDigitCorrectResult) }}</span></div>
+            <div v-if="detailCalculation.threeDigitCorrectTotal > 0" class="flex justify-between gap-3 text-red-600"><span>{{ t('invoice.print.correctThreeDigit') }}</span><span>{{ formatPlainNumber(detailCalculation.threeDigitCorrectTotal) }} × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(detailResultCalculation.threeDigitCorrectResult) }}</span></div>
+            <div class="border-t pt-3 text-xl font-bold" :class="getGrandTotalColorClass(detailResultCalculation.grandTotal)"><div class="flex justify-between"><span>{{ t('invoice.print.total') }}</span><span>{{ formatSignedPlayResult(detailResultCalculation.grandTotal) }}</span></div></div>
           </div>
         </section>
       </div>
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
-          <Button
-            :label="t('invoice.close')"
-            severity="secondary"
-            outlined
-            @click="detailDialogVisible = false"
-          />
-
-          <Button
-            :label="t('invoice.printButton')"
-            icon="pi pi-print"
-            :loading="
-              printingPlayId ===
-              (selectedDetailPlay?.id || selectedDetailPlay?._id)
-            "
-            @click="printLotteryPlay(selectedDetailPlay)"
-          />
+          <Button type="button" :label="t('invoice.close')" severity="secondary" outlined @click="detailDialogVisible = false" />
+          <Button type="button" :label="t('invoice.printButton')" icon="pi pi-print" :loading="printingPlayId === (selectedDetailPlay?.id || selectedDetailPlay?._id)" @click="printLotteryPlay(selectedDetailPlay)" />
         </div>
       </template>
     </Dialog>
 
-    <!-- Delete invoice -->
+    <!-- Delete dialog -->
     <Dialog
       v-model:visible="deleteDialogVisible"
+      appendTo="body"
       modal
+      :autoZIndex="true"
+      :baseZIndex="20000"
       :header="t('invoice.dialogs.deleteTitle')"
-      :style="{
-        width: '94vw',
-        maxWidth: '420px'
-      }"
+      :style="{ width: 'calc(100vw - 24px)', maxWidth: '420px' }"
       :closable="!deleting"
       :draggable="false"
     >
       <div>
-        <div class="font-semibold text-gray-900">
-          {{ t('invoice.deleteQuestion') }}
-        </div>
-        <div class="mt-2 text-sm text-gray-500">
-          {{ selectedDeletePlay?.title }}
-        </div>
+        <div class="font-semibold text-gray-900">{{ t('invoice.deleteQuestion') }}</div>
+        <div class="mt-2 text-sm text-gray-500">{{ selectedDeletePlay?.title }}</div>
       </div>
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
-          <Button
-            :label="t('invoice.cancel')"
-            severity="secondary"
-            outlined
-            :disabled="deleting"
-            @click="closeDeleteDialog"
-          />
-
-          <Button
-            :label="t('invoice.delete')"
-            icon="pi pi-trash"
-            severity="danger"
-            :loading="deleting"
-            @click="confirmDeleteLotteryPlay"
-          />
+          <Button type="button" :label="t('invoice.cancel')" severity="secondary" outlined :disabled="deleting" @click="closeDeleteDialog" />
+          <Button type="button" :label="t('invoice.delete')" icon="pi pi-trash" severity="danger" :loading="deleting" @click="confirmDeleteLotteryPlay" />
         </div>
       </template>
     </Dialog>
@@ -4123,8 +2322,8 @@ onMounted(async () => {
 }
 
 :deep(.p-multiselect-label) {
-  min-height: 44px;
   display: flex;
+  min-height: 44px;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -4142,38 +2341,64 @@ onMounted(async () => {
 </style>
 
 <style>
-.invoice-form-dialog,
-.invoice-detail-dialog {
-  display: flex;
-  max-height: 94vh;
+/* Keep dialogs above the application layout. */
+.p-dialog-mask {
+  z-index: 20000 !important;
+}
+
+.p-dialog-mask .p-dialog {
+  z-index: 20001 !important;
+}
+
+/* Keep Select, MultiSelect, and DatePicker panels above the dialog mask. */
+.p-select-overlay,
+.p-multiselect-overlay,
+.p-datepicker-panel {
+  z-index: 30000 !important;
+  pointer-events: auto !important;
+}
+
+.invoice-form-dialog.p-dialog,
+.invoice-detail-dialog.p-dialog {
+  display: flex !important;
+  max-height: calc(100dvh - 24px) !important;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.3);
 }
 
 .invoice-form-dialog .p-dialog-header,
 .invoice-detail-dialog .p-dialog-header {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
 .invoice-form-dialog .p-dialog-content,
 .invoice-detail-dialog .p-dialog-content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: #ffffff;
 }
 
 .invoice-form-dialog .p-dialog-footer,
 .invoice-detail-dialog .p-dialog-footer {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
 }
 
 @media (max-width: 639px) {
-  .invoice-form-dialog,
-  .invoice-detail-dialog {
+  .invoice-form-dialog.p-dialog,
+  .invoice-detail-dialog.p-dialog {
     width: 100vw !important;
     height: 100dvh !important;
+    max-width: none !important;
     max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
@@ -4198,7 +2423,7 @@ onMounted(async () => {
   .p-select-overlay,
   .p-multiselect-overlay,
   .p-datepicker-panel {
-    max-width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem) !important;
   }
 }
 </style>
