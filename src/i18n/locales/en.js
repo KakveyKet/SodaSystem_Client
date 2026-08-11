@@ -115,8 +115,7 @@ export default {
     deleted: "Invoice deleted successfully",
 
     deleteTitle: "Delete Invoice",
-    deleteConfirm:
-      "Are you sure you want to delete this invoice?",
+    deleteConfirm: "Are you sure you want to delete this invoice?",
 
     noInvoices: "No invoices found",
   },
@@ -132,8 +131,7 @@ export default {
     search: "Search",
     reset: "Reset",
 
-    searchPlaceholder:
-      "Search by username, email, branch, phone, or address",
+    searchPlaceholder: "Search by username, email, branch, phone, or address",
 
     allStatuses: "All statuses",
     noCustomers: "No customers found",
@@ -153,8 +151,7 @@ export default {
     login: {
       title: "Customer login account",
 
-      description:
-        "Creates a linked User account with the customer role.",
+      description: "Creates a linked User account with the customer role.",
 
       ready: "Ready",
       missing: "Missing",
@@ -164,17 +161,13 @@ export default {
 
       emailOptional: "Optional",
 
-      createPasswordPlaceholder:
-        "Minimum 6 characters",
+      createPasswordPlaceholder: "Minimum 6 characters",
 
-      updatePasswordPlaceholder:
-        "Enter a new password",
+      updatePasswordPlaceholder: "Enter a new password",
 
-      confirmPasswordPlaceholder:
-        "Enter password again",
+      confirmPasswordPlaceholder: "Enter password again",
 
-      createPasswordHelp:
-        "Password is required when creating a customer.",
+      createPasswordHelp: "Password is required when creating a customer.",
 
       legacyPasswordHelp:
         "This customer does not have a login account. Enter a password to create one.",
@@ -184,8 +177,7 @@ export default {
     },
 
     sections: {
-      customerInformation:
-        "Customer information",
+      customerInformation: "Customer information",
     },
 
     fields: {
@@ -203,25 +195,19 @@ export default {
       confirmPassword: "Confirm password",
     },
 
-placeholders: {
-  username:
-    "Enter customer username",
+    placeholders: {
+      username: "Enter customer username",
 
-  email:
-    "customer{'@'}example.com",
+      email: "customer{'@'}example.com",
 
-  branch:
-    "Enter branch",
+      branch: "Enter branch",
 
-  phone:
-    "Enter phone number",
+      phone: "Enter phone number",
 
-  address:
-    "Enter customer address",
+      address: "Enter customer address",
 
-  description:
-    "Enter customer description",
-},
+      description: "Enter customer description",
+    },
 
     columns: {
       username: "Username",
@@ -241,682 +227,661 @@ placeholders: {
       deleteTitle: "Delete Customer",
     },
 
-    deleteQuestion:
-      'Are you sure you want to delete customer "{name}"?',
+    deleteQuestion: 'Are you sure you want to delete customer "{name}"?',
 
     deleteLoginNote:
       "Deleting this customer also deletes the linked customer login account.",
 
     messages: {
-      created:
-        "Customer and login account created successfully.",
+      created: "Customer and login account created successfully.",
 
-      updated:
-        "Customer and login account updated successfully.",
+      updated: "Customer and login account updated successfully.",
 
-      deleted:
-        "Customer and linked login account deleted successfully.",
+      deleted: "Customer and linked login account deleted successfully.",
     },
 
     errors: {
-      fetch:
-        "Could not fetch customers.",
+      fetch: "Could not fetch customers.",
 
-      save:
-        "Could not save customer.",
+      save: "Could not save customer.",
 
-      delete:
-        "Could not delete customer.",
+      delete: "Could not delete customer.",
 
-      idMissing:
-        "Customer ID was not found.",
+      idMissing: "Customer ID was not found.",
 
-      usernameRequired:
-        "Username is required.",
+      usernameRequired: "Username is required.",
 
-      usernameTooLong:
-        "Username cannot exceed 100 characters.",
+      usernameTooLong: "Username cannot exceed 100 characters.",
 
-      invalidEmail:
-        "Please enter a valid email address.",
+      invalidEmail: "Please enter a valid email address.",
 
-      branchRequired:
-        "Branch is required.",
+      branchRequired: "Branch is required.",
 
-      passwordRequired:
-        "Password is required to create customer login access.",
+      passwordRequired: "Password is required to create customer login access.",
 
-      passwordTooShort:
-        "Password must contain at least 6 characters.",
+      passwordTooShort: "Password must contain at least 6 characters.",
 
-      passwordMismatch:
-        "Password and confirm password do not match.",
+      passwordMismatch: "Password and confirm password do not match.",
 
-      invalidBalance:
-        "Balance must be a valid number.",
+      invalidBalance: "Balance must be a valid number.",
 
-      balanceNegative:
-        "Balance cannot be negative.",
+      balanceNegative: "Balance cannot be negative.",
     },
   },
 
-product: {
-  title: "Products",
+  product: {
+    title: "Products",
 
-  add: "Add",
-  search: "Search",
-  reset: "Reset",
-  edit: "Edit",
-  delete: "Delete",
-  cancel: "Cancel",
-  create: "Create",
-  update: "Update",
+    add: "Add",
+    search: "Search",
+    reset: "Reset",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    create: "Create",
+    update: "Update",
 
-  searchPlaceholder: "Search product...",
-  allCategories: "All categories",
-  allStatuses: "All statuses",
-  noProducts: "No products found.",
-  pageOf: "Page {page} of {total}",
+    searchPlaceholder: "Search product...",
+    allCategories: "All categories",
+    allStatuses: "All statuses",
+    noProducts: "No products found.",
+    pageOf: "Page {page} of {total}",
 
-  status: {
-    active: "Active",
-    inactive: "Inactive",
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+
+    columns: {
+      product: "Product",
+      category: "Category",
+      multiplier: "Multiplier",
+      description: "Description",
+      status: "Status",
+      action: "Action",
+    },
+
+    dialogs: {
+      addTitle: "Add Product",
+      editTitle: "Edit Product",
+      deleteTitle: "Delete Product",
+    },
+
+    fields: {
+      category: "Category",
+      name: "Product Name",
+      multiplier: "Win Multiplier",
+      description: "Description",
+      status: "Status",
+    },
+
+    placeholders: {
+      category: "Select category",
+      name: "Enter product name",
+      description: "Enter product description",
+    },
+
+    deleteQuestion: "Delete {name}?",
+    deleteWarning: "A product assigned to an invoice cannot be deleted.",
+
+    messages: {
+      created: "Product created successfully",
+      updated: "Product updated successfully",
+      deleted: "Product deleted successfully",
+    },
+
+    errors: {
+      fetch: "Could not fetch products",
+      save: "Could not save product",
+      delete: "Could not delete product",
+      load: "Could not load product page",
+      idMissing: "Product ID was not found",
+      categoryRequired: "Category is required",
+      nameRequired: "Product name is required",
+      multiplierRequired: "Win multiplier is required",
+      multiplierNegative: "Win multiplier cannot be negative",
+    },
   },
 
-  columns: {
-    product: "Product",
-    category: "Category",
-    multiplier: "Multiplier",
-    description: "Description",
-    status: "Status",
-    action: "Action",
+  rate: {
+    title: "Rates",
+
+    add: "Add",
+    search: "Search",
+    reset: "Reset",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    create: "Create",
+    update: "Update",
+
+    searchPlaceholder: "Search rate...",
+    allStatuses: "All statuses",
+    noRates: "No rates found.",
+    pageOf: "Page {page} of {total}",
+
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+
+    columns: {
+      name: "Rate Name",
+      rate: "Rate",
+      description: "Description",
+      status: "Status",
+      action: "Action",
+    },
+
+    dialogs: {
+      addTitle: "Add Rate",
+      editTitle: "Edit Rate",
+      deleteTitle: "Delete Rate",
+    },
+
+    fields: {
+      name: "Rate Name",
+      percentage: "Percentage Number",
+      description: "Description",
+      status: "Status",
+    },
+
+    placeholders: {
+      name: "Example: 2D 100%",
+      description: "Enter rate description",
+    },
+
+    deleteQuestion: "Delete {name}?",
+    deleteWarning: "This rate will be permanently removed.",
+
+    messages: {
+      created: "Rate created successfully",
+      updated: "Rate updated successfully",
+      deleted: "Rate deleted successfully",
+    },
+
+    errors: {
+      fetch: "Could not fetch rates",
+      save: "Could not save rate",
+      delete: "Could not delete rate",
+      idMissing: "Rate ID was not found",
+      nameRequired: "Rate name is required",
+      numberRequired: "Rate number is required",
+      numberNegative: "Rate number cannot be negative",
+    },
   },
 
-  dialogs: {
-    addTitle: "Add Product",
-    editTitle: "Edit Product",
-    deleteTitle: "Delete Product",
-  },
+  user: {
+    title: "Users",
+    add: "Add",
+    search: "Search",
+    reset: "Reset",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    create: "Create",
+    update: "Update",
 
-  fields: {
-    category: "Category",
-    name: "Product Name",
-    multiplier: "Win Multiplier",
-    description: "Description",
-    status: "Status",
-  },
-
-  placeholders: {
-    category: "Select category",
-    name: "Enter product name",
-    description: "Enter product description",
-  },
-
-  deleteQuestion: "Delete {name}?",
-  deleteWarning:
-    "A product assigned to an invoice cannot be deleted.",
-
-  messages: {
-    created: "Product created successfully",
-    updated: "Product updated successfully",
-    deleted: "Product deleted successfully",
-  },
-
-  errors: {
-    fetch: "Could not fetch products",
-    save: "Could not save product",
-    delete: "Could not delete product",
-    load: "Could not load product page",
-    idMissing: "Product ID was not found",
-    categoryRequired: "Category is required",
-    nameRequired: "Product name is required",
-    multiplierRequired: "Win multiplier is required",
-    multiplierNegative:
-      "Win multiplier cannot be negative",
-  },
-},
-
-rate: {
-  title: "Rates",
-
-  add: "Add",
-  search: "Search",
-  reset: "Reset",
-  edit: "Edit",
-  delete: "Delete",
-  cancel: "Cancel",
-  create: "Create",
-  update: "Update",
-
-  searchPlaceholder: "Search rate...",
-  allStatuses: "All statuses",
-  noRates: "No rates found.",
-  pageOf: "Page {page} of {total}",
-
-  status: {
-    active: "Active",
-    inactive: "Inactive",
-  },
-
-  columns: {
-    name: "Rate Name",
-    rate: "Rate",
-    description: "Description",
-    status: "Status",
-    action: "Action",
-  },
-
-  dialogs: {
-    addTitle: "Add Rate",
-    editTitle: "Edit Rate",
-    deleteTitle: "Delete Rate",
-  },
-
-  fields: {
-    name: "Rate Name",
-    percentage: "Percentage Number",
-    description: "Description",
-    status: "Status",
-  },
-
-  placeholders: {
-    name: "Example: 2D 100%",
-    description: "Enter rate description",
-  },
-
-  deleteQuestion: "Delete {name}?",
-  deleteWarning:
-    "This rate will be permanently removed.",
-
-  messages: {
-    created: "Rate created successfully",
-    updated: "Rate updated successfully",
-    deleted: "Rate deleted successfully",
-  },
-
-  errors: {
-    fetch: "Could not fetch rates",
-    save: "Could not save rate",
-    delete: "Could not delete rate",
-    idMissing: "Rate ID was not found",
-    nameRequired: "Rate name is required",
-    numberRequired: "Rate number is required",
-    numberNegative:
-      "Rate number cannot be negative",
-  },
-},
-
- user: {
-  title: "Users",
-  add: "Add",
-  search: "Search",
-  reset: "Reset",
-  edit: "Edit",
-  delete: "Delete",
-  cancel: "Cancel",
-  create: "Create",
-  update: "Update",
-
-  searchPlaceholder: "Search name or email...",
-  allRoles: "All roles",
-  noUsers: "No users found.",
-  created: "Created",
-  pageOf: "Page {page} of {total}",
-
-  columns: {
-    name: "Name",
-    email: "Email",
-    role: "Role",
+    searchPlaceholder: "Search name or email...",
+    allRoles: "All roles",
+    noUsers: "No users found.",
     created: "Created",
-    action: "Action",
+    pageOf: "Page {page} of {total}",
+
+    columns: {
+      name: "Name",
+      email: "Email",
+      role: "Role",
+      created: "Created",
+      action: "Action",
+    },
+
+    roles: {
+      user: "User",
+      admin: "Administrator",
+    },
+
+    dialogs: {
+      addTitle: "Add User",
+      editTitle: "Edit User",
+      deleteTitle: "Delete User",
+    },
+
+    fields: {
+      name: "Name",
+      email: "Email",
+      password: "Password",
+      role: "Role",
+    },
+
+    placeholders: {
+      name: "Enter name",
+      email: "Enter email",
+      password: "Enter password",
+      keepPassword: "Leave blank to keep current password",
+      role: "Select role",
+    },
+
+    passwordHint: "Leave the password empty when it should not be changed.",
+
+    passwordStrength: {
+      prompt: "Enter a password",
+      weak: "Weak",
+      medium: "Medium",
+      strong: "Strong",
+    },
+
+    deleteQuestion: "Delete {name}?",
+    deleteWarning: "This user will no longer be able to sign in.",
+
+    messages: {
+      created: "User created successfully",
+      updated: "User updated successfully",
+      deleted: "User deleted successfully",
+    },
+
+    errors: {
+      fetch: "Could not fetch users",
+      save: "Could not save user",
+      delete: "Could not delete user",
+      idMissing: "User ID was not found",
+
+      nameRequired: "Name is required",
+      emailRequired: "Email is required",
+      emailInvalid: "Please enter a valid email",
+      passwordRequired: "Password is required",
+      passwordMin: "Password must be at least 6 characters",
+      roleInvalid: "Please select a valid role",
+    },
   },
+  category: {
+    title: "Categories",
 
-  roles: {
-    user: "User",
-    admin: "Administrator",
-  },
+    add: "Add",
+    search: "Search",
+    reset: "Reset",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    create: "Create",
+    update: "Update",
 
-  dialogs: {
-    addTitle: "Add User",
-    editTitle: "Edit User",
-    deleteTitle: "Delete User",
-  },
-
-  fields: {
-    name: "Name",
-    email: "Email",
-    password: "Password",
-    role: "Role",
-  },
-
-  placeholders: {
-    name: "Enter name",
-    email: "Enter email",
-    password: "Enter password",
-    keepPassword: "Leave blank to keep current password",
-    role: "Select role",
-  },
-
-  passwordHint:
-    "Leave the password empty when it should not be changed.",
-
-  passwordStrength: {
-    prompt: "Enter a password",
-    weak: "Weak",
-    medium: "Medium",
-    strong: "Strong",
-  },
-
-  deleteQuestion: "Delete {name}?",
-  deleteWarning:
-    "This user will no longer be able to sign in.",
-
-  messages: {
-    created: "User created successfully",
-    updated: "User updated successfully",
-    deleted: "User deleted successfully",
-  },
-
-  errors: {
-    fetch: "Could not fetch users",
-    save: "Could not save user",
-    delete: "Could not delete user",
-    idMissing: "User ID was not found",
-
-    nameRequired: "Name is required",
-    emailRequired: "Email is required",
-    emailInvalid: "Please enter a valid email",
-    passwordRequired: "Password is required",
-    passwordMin:
-      "Password must be at least 6 characters",
-    roleInvalid: "Please select a valid role",
-  },
-},
-category: {
-  title: "Categories",
-
-  add: "Add",
-  search: "Search",
-  reset: "Reset",
-  edit: "Edit",
-  delete: "Delete",
-  cancel: "Cancel",
-  create: "Create",
-  update: "Update",
-
-  searchPlaceholder: "Search category...",
-  allStatuses: "All statuses",
-  noCategories: "No categories found.",
-  created: "Created",
-  pageOf: "Page {page} of {total}",
-
-  status: {
-    active: "Active",
-    inactive: "Inactive",
-  },
-
-  columns: {
-    name: "Category Name",
-    description: "Description",
-    status: "Status",
+    searchPlaceholder: "Search category...",
+    allStatuses: "All statuses",
+    noCategories: "No categories found.",
     created: "Created",
-    action: "Action",
+    pageOf: "Page {page} of {total}",
+
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+
+    columns: {
+      name: "Category Name",
+      description: "Description",
+      status: "Status",
+      created: "Created",
+      action: "Action",
+    },
+
+    dialogs: {
+      addTitle: "Add Category",
+      editTitle: "Edit Category",
+      deleteTitle: "Delete Category",
+    },
+
+    fields: {
+      name: "Category Name",
+      description: "Description",
+      status: "Status",
+    },
+
+    placeholders: {
+      name: "Enter category name",
+      description: "Enter category description",
+    },
+
+    deleteQuestion: "Delete {name}?",
+    deleteWarning:
+      "A category assigned to a product or invoice cannot be deleted.",
+
+    messages: {
+      created: "Category created successfully",
+      updated: "Category updated successfully",
+      deleted: "Category deleted successfully",
+    },
+
+    errors: {
+      fetch: "Could not fetch categories",
+      save: "Could not save category",
+      delete: "Could not delete category",
+      idMissing: "Category ID was not found",
+      nameRequired: "Category name is required",
+    },
   },
+  invoice: {
+    title: "Invoice List",
+    addInvoice: "Add Invoice",
+    search: "Search",
+    showFilters: "Show filters",
+    reset: "Reset",
+    resetFilters: "Reset filters",
+    apply: "Apply",
+    view: "View",
+    printButton: "Print",
+    edit: "Edit",
+    delete: "Delete",
+    close: "Close",
+    cancel: "Cancel",
+    createInvoice: "Create Invoice",
+    updateInvoice: "Update Invoice",
 
-  dialogs: {
-    addTitle: "Add Category",
-    editTitle: "Edit Category",
-    deleteTitle: "Delete Category",
+    searchInvoices: "Search invoices...",
+    searchInvoiceOrRow: "Search invoice or row...",
+    allCategories: "All categories",
+    allProducts: "All products",
+    invoiceDateRange: "Invoice date range",
+    selectDateRange: "Select date range",
+    loadingInvoices: "Loading invoices...",
+    loadingInvoice: "Loading invoice...",
+    noInvoices: "No invoices found.",
+    noRows: "No rows found.",
+    pageOf: "Page {page} of {total}",
+    previousPage: "Previous page",
+    nextPage: "Next page",
+    rowNumber: "Row {number}",
+
+    columns: {
+      number: "No.",
+      invoiceName: "Invoice Name",
+      category: "Category",
+      product: "Product",
+      customer: "Customer",
+      invoiceDate: "Invoice Date",
+      action: "Action",
+    },
+
+    dialogs: {
+      createTitle: "Create Invoice",
+      editTitle: "Edit Invoice",
+      detailsTitle: "Invoice Details",
+      deleteTitle: "Delete Invoice",
+    },
+
+    sections: {
+      information: "Invoice Information",
+      rows: "Invoice Rows",
+    },
+
+    fields: {
+      invoiceName: "Invoice Name",
+      invoiceDate: "Invoice Date",
+      date: "Date",
+      customer: "Customer",
+      category: "Category",
+      product: "Product",
+      twoDigitRate: "2D Rate",
+      threeDigitRate: "3D Rate",
+      rowName: "Row Name",
+      twoDigitNumber: "2D Number",
+      twoDigitAmount: "2D Amount",
+      correctTwoDigit: "Correct 2D",
+      threeDigitNumber: "3D Number",
+      threeDigitAmount: "3D Amount",
+      correctThreeDigit: "Correct 3D",
+      grandTotal: "Grand Total",
+    },
+
+    placeholders: {
+      invoiceName: "Enter invoice name",
+      customer: "Select customer",
+      searchCustomer: "Search customer",
+      category: "Select category",
+      product: "Select product",
+      searchProduct: "Search product",
+      twoDigitRate: "2D rate",
+      threeDigitRate: "3D rate",
+      rowName: "Example: 56>70",
+      amount: "Amount",
+      type: "Type",
+    },
+
+    rowsHint: "Add one or more 2D or 3D rows.",
+    addRow: "Add Row",
+    invoiceRow: "Invoice Row",
+    duplicateRow: "Duplicate row",
+    removeRow: "Remove row",
+    enableTwoDigit: "Enable 2D values",
+    enableThreeDigit: "Enable 3D values",
+    calculatedAutomatically: "Calculated automatically",
+    copySuffix: "Copy",
+    deleteQuestion: "Delete this invoice?",
+
+    print: {
+      serial: "No.",
+      rowTitle: "Row Name",
+      twoDigit: "2D",
+      threeDigit: "3D",
+      correctTwoDigit: "Correct 2D",
+      correctThreeDigit: "Correct 3D",
+      total: "Total",
+      preparing: "Preparing invoice...",
+      prepareError: "Could not prepare this invoice for printing.",
+    },
+
+    messages: {
+      created: "Invoice created successfully",
+      updated: "Invoice updated successfully",
+      deleted: "Invoice deleted successfully",
+    },
+
+    errors: {
+      dataNotFound: "Invoice data was not found",
+
+      popupBlocked:
+        "Print popup was blocked. Please allow popups and try again.",
+
+      print: "Could not print invoice",
+      fetch: "Could not fetch invoices",
+      detail: "Could not load invoice details",
+      save: "Could not save invoice",
+      delete: "Could not delete invoice",
+
+      titleRequired: "Invoice name is required",
+      categoryRequired: "Category is required",
+      productRequired: "Product is required",
+      customerRequired: "Customer is required",
+      dateRequired: "Invoice date is required",
+
+      invalidTwoDigitRate: "Please select a valid 2D rate",
+
+      invalidThreeDigitRate: "Please select a valid 3D rate",
+
+      selectedProductInvalid: "Selected product is invalid",
+
+      atLeastOneRow: "At least one row is required",
+
+      rowNameRequired: "Row {row}: Row name is required",
+
+      twoDigitRequired: "Row {row}: 2D number is required",
+
+      twoDigitRange: "Row {row}: 2D number must be between 0 and 99",
+
+      twoDigitAmountNegative: "Row {row}: 2D amount cannot be negative",
+
+      twoDigitTypeNegative: "Row {row}: 2D type cannot be negative",
+
+      threeDigitRequired: "Row {row}: 3D number is required",
+
+      threeDigitRange: "Row {row}: 3D number must be between 0 and 999",
+
+      threeDigitAmountNegative: "Row {row}: 3D amount cannot be negative",
+
+      threeDigitTypeNegative: "Row {row}: 3D type cannot be negative",
+    },
   },
+  dashboard: {
+    title: "Dashboard",
+    subtitle: "Choose a section to manage your system.",
 
-  fields: {
-    name: "Category Name",
-    description: "Description",
-    status: "Status",
+    cards: {
+      invoices: "Invoice List",
+      customers: "Customer List",
+      products: "Product List",
+      categories: "Category List",
+      rates: "Rate List",
+      users: "User List",
+    },
   },
+  profile: {
+    title: "Profile",
 
-  placeholders: {
-    name: "Enter category name",
-    description: "Enter category description",
+    subtitle: "Manage your personal information and password",
+
+    loading: "Loading profile...",
+
+    save: "Save Changes",
+
+    fields: {
+      name: "Name",
+      email: "Email",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmPassword: "Confirm Password",
+    },
+
+    placeholders: {
+      name: "Enter your name",
+
+      email: "Enter your email address",
+
+      currentPassword: "Enter current password",
+
+      newPassword: "Enter new password",
+
+      confirmPassword: "Enter new password again",
+    },
+
+    changePassword: {
+      title: "Change Password",
+
+      description:
+        "Leave these fields empty when you do not want to change your password.",
+    },
+
+    messages: {
+      updated: "Profile updated successfully",
+    },
+
+    errors: {
+      load: "Could not load profile",
+
+      update: "Could not update profile",
+
+      nameRequired: "Name is required",
+
+      emailRequired: "Email is required",
+
+      emailInvalid: "Please enter a valid email address",
+
+      currentPasswordRequired: "Current password is required",
+
+      newPasswordRequired: "New password is required",
+
+      newPasswordMin: "New password must be at least 6 characters",
+
+      confirmPasswordRequired: "Confirm password is required",
+
+      confirmPasswordMismatch: "Confirm password does not match",
+
+      passwordMustBeDifferent:
+        "New password must be different from the current password",
+    },
   },
+  login: {
+    title: "Login",
 
-  deleteQuestion: "Delete {name}?",
-  deleteWarning:
-    "A category assigned to a product or invoice cannot be deleted.",
+    fields: {
+      identifier: "Username or email",
 
-  messages: {
-    created: "Category created successfully",
-    updated: "Category updated successfully",
-    deleted: "Category deleted successfully",
+      password: "Password",
+    },
+
+    placeholders: {
+      identifier: "Enter username or email",
+
+      password: "Enter password",
+    },
+
+    loginButton: "Login",
+
+    noAccount: "No account?",
+
+    registerHere: "Register here",
+
+    messages: {
+      successTitle: "Success",
+
+      successDetail: "Logged in successfully",
+
+      failedTitle: "Login failed",
+    },
+
+    errors: {
+      invalidCredentials: "Invalid username, email, or password",
+    },
   },
+  customerDepositReport: {
+    title: "Customer Loan / Deposit Report",
 
-  errors: {
-    fetch: "Could not fetch categories",
-    save: "Could not save category",
-    delete: "Could not delete category",
-    idMissing: "Category ID was not found",
-    nameRequired: "Category name is required",
+    currentWeekHint: "Default view: current week (Monday to Sunday)",
+
+    transactionsTitle: "Deposit Transactions",
+
+    loading: "Loading transactions...",
+
+    empty: "No deposit transactions found for this period.",
+
+    fields: {
+      date: "Date",
+
+      customer: "Customer",
+
+      dateRange: "Date Range",
+
+      loanDeposit: "Loan / Deposit",
+
+      before: "Balance Before",
+
+      after: "Balance After",
+
+      description: "Description",
+    },
+
+    filters: {
+      title: "Report Filters",
+
+      allCustomers: "All Customers",
+    },
+
+    actions: {
+      search: "Search",
+
+      reset: "Reset",
+
+      print: "Print",
+    },
+
+    defaults: {
+      description: "Customer loan / deposit",
+    },
+
+    errors: {
+      fetch: "Could not load customer deposit report",
+
+      popupBlocked:
+        "Popup was blocked. Please allow popups to print the report.",
+    },
   },
-},
-invoice: {
-  title: "Invoice List",
-  addInvoice: "Add Invoice",
-  search: "Search",
-  showFilters: "Show filters",
-  reset: "Reset",
-  resetFilters: "Reset filters",
-  apply: "Apply",
-  view: "View",
-  printButton: "Print",
-  edit: "Edit",
-  delete: "Delete",
-  close: "Close",
-  cancel: "Cancel",
-  createInvoice: "Create Invoice",
-  updateInvoice: "Update Invoice",
-
-  searchInvoices: "Search invoices...",
-  searchInvoiceOrRow: "Search invoice or row...",
-  allCategories: "All categories",
-  allProducts: "All products",
-  invoiceDateRange: "Invoice date range",
-  selectDateRange: "Select date range",
-  loadingInvoices: "Loading invoices...",
-  loadingInvoice: "Loading invoice...",
-  noInvoices: "No invoices found.",
-  noRows: "No rows found.",
-  pageOf: "Page {page} of {total}",
-  previousPage: "Previous page",
-  nextPage: "Next page",
-  rowNumber: "Row {number}",
-
-  columns: {
-    number: "No.",
-    invoiceName: "Invoice Name",
-    category: "Category",
-    product: "Product",
-    customer: "Customer",
-    invoiceDate: "Invoice Date",
-    action: "Action",
-  },
-
-  dialogs: {
-    createTitle: "Create Invoice",
-    editTitle: "Edit Invoice",
-    detailsTitle: "Invoice Details",
-    deleteTitle: "Delete Invoice",
-  },
-
-  sections: {
-    information: "Invoice Information",
-    rows: "Invoice Rows",
-  },
-
-  fields: {
-    invoiceName: "Invoice Name",
-    invoiceDate: "Invoice Date",
-    date: "Date",
-    customer: "Customer",
-    category: "Category",
-    product: "Product",
-    twoDigitRate: "2D Rate",
-    threeDigitRate: "3D Rate",
-    rowName: "Row Name",
-    twoDigitNumber: "2D Number",
-    twoDigitAmount: "2D Amount",
-    correctTwoDigit: "Correct 2D",
-    threeDigitNumber: "3D Number",
-    threeDigitAmount: "3D Amount",
-    correctThreeDigit: "Correct 3D",
-    grandTotal: "Grand Total",
-  },
-
-  placeholders: {
-    invoiceName: "Enter invoice name",
-    customer: "Select customer",
-    searchCustomer: "Search customer",
-    category: "Select category",
-    product: "Select product",
-    searchProduct: "Search product",
-    twoDigitRate: "2D rate",
-    threeDigitRate: "3D rate",
-    rowName: "Example: 56>70",
-    amount: "Amount",
-    type: "Type",
-  },
-
-  rowsHint: "Add one or more 2D or 3D rows.",
-  addRow: "Add Row",
-  invoiceRow: "Invoice Row",
-  duplicateRow: "Duplicate row",
-  removeRow: "Remove row",
-  enableTwoDigit: "Enable 2D values",
-  enableThreeDigit: "Enable 3D values",
-  calculatedAutomatically: "Calculated automatically",
-  copySuffix: "Copy",
-  deleteQuestion: "Delete this invoice?",
-
-  print: {
-    serial: "No.",
-    rowTitle: "Row Name",
-    twoDigit: "2D",
-    threeDigit: "3D",
-    correctTwoDigit: "Correct 2D",
-    correctThreeDigit: "Correct 3D",
-    total: "Total",
-    preparing: "Preparing invoice...",
-    prepareError:
-      "Could not prepare this invoice for printing.",
-  },
-
-  messages: {
-    created: "Invoice created successfully",
-    updated: "Invoice updated successfully",
-    deleted: "Invoice deleted successfully",
-  },
-
-  errors: {
-    dataNotFound: "Invoice data was not found",
-
-    popupBlocked:
-      "Print popup was blocked. Please allow popups and try again.",
-
-    print: "Could not print invoice",
-    fetch: "Could not fetch invoices",
-    detail: "Could not load invoice details",
-    save: "Could not save invoice",
-    delete: "Could not delete invoice",
-
-    titleRequired: "Invoice name is required",
-    categoryRequired: "Category is required",
-    productRequired: "Product is required",
-    customerRequired: "Customer is required",
-    dateRequired: "Invoice date is required",
-
-    invalidTwoDigitRate:
-      "Please select a valid 2D rate",
-
-    invalidThreeDigitRate:
-      "Please select a valid 3D rate",
-
-    selectedProductInvalid:
-      "Selected product is invalid",
-
-    atLeastOneRow:
-      "At least one row is required",
-
-    rowNameRequired:
-      "Row {row}: Row name is required",
-
-    twoDigitRequired:
-      "Row {row}: 2D number is required",
-
-    twoDigitRange:
-      "Row {row}: 2D number must be between 0 and 99",
-
-    twoDigitAmountNegative:
-      "Row {row}: 2D amount cannot be negative",
-
-    twoDigitTypeNegative:
-      "Row {row}: 2D type cannot be negative",
-
-    threeDigitRequired:
-      "Row {row}: 3D number is required",
-
-    threeDigitRange:
-      "Row {row}: 3D number must be between 0 and 999",
-
-    threeDigitAmountNegative:
-      "Row {row}: 3D amount cannot be negative",
-
-    threeDigitTypeNegative:
-      "Row {row}: 3D type cannot be negative",
-  },
-},
-dashboard: {
-  title: "Dashboard",
-  subtitle:
-    "Choose a section to manage your system.",
-
-  cards: {
-    invoices: "Invoice List",
-    customers: "Customer List",
-    products: "Product List",
-    categories: "Category List",
-    rates: "Rate List",
-    users: "User List",
-  },
-},
-profile: {
-  title: 'Profile',
-
-  subtitle:
-    'Manage your personal information and password',
-
-  loading:
-    'Loading profile...',
-
-  save:
-    'Save Changes',
-
-  fields: {
-    name: 'Name',
-    email: 'Email',
-    currentPassword:
-      'Current Password',
-    newPassword:
-      'New Password',
-    confirmPassword:
-      'Confirm Password'
-  },
-
-  placeholders: {
-    name:
-      'Enter your name',
-
-    email:
-      'Enter your email address',
-
-    currentPassword:
-      'Enter current password',
-
-    newPassword:
-      'Enter new password',
-
-    confirmPassword:
-      'Enter new password again'
-  },
-
-  changePassword: {
-    title:
-      'Change Password',
-
-    description:
-      'Leave these fields empty when you do not want to change your password.'
-  },
-
-  messages: {
-    updated:
-      'Profile updated successfully'
-  },
-
-  errors: {
-    load:
-      'Could not load profile',
-
-    update:
-      'Could not update profile',
-
-    nameRequired:
-      'Name is required',
-
-    emailRequired:
-      'Email is required',
-
-    emailInvalid:
-      'Please enter a valid email address',
-
-    currentPasswordRequired:
-      'Current password is required',
-
-    newPasswordRequired:
-      'New password is required',
-
-    newPasswordMin:
-      'New password must be at least 6 characters',
-
-    confirmPasswordRequired:
-      'Confirm password is required',
-
-    confirmPasswordMismatch:
-      'Confirm password does not match',
-
-    passwordMustBeDifferent:
-      'New password must be different from the current password'
-  }
-},
-login: {
-  title: 'Login',
-
-  fields: {
-    identifier:
-      'Username or email',
-
-    password:
-      'Password'
-  },
-
-  placeholders: {
-    identifier:
-      'Enter username or email',
-
-    password:
-      'Enter password'
-  },
-
-  loginButton:
-    'Login',
-
-  noAccount:
-    'No account?',
-
-  registerHere:
-    'Register here',
-
-  messages: {
-    successTitle:
-      'Success',
-
-    successDetail:
-      'Logged in successfully',
-
-    failedTitle:
-      'Login failed'
-  },
-
-  errors: {
-    invalidCredentials:
-      'Invalid username, email, or password'
-  }
-}
 };

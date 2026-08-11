@@ -1,12 +1,10 @@
-import {
-  createRouter,
-  createWebHistory,
-} from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
 import { useAuthStore } from "../stores/auth";
 
 import CategoryView from "../views/CategoryView.vue";
 import CustomerBalance from "../views/CustomerBalance.vue";
+import CustomerDepositReport from "../views/CustomerDepositReport.vue";
 import CustomerView from "../views/CustomerView.vue";
 import DashboardView from "../views/DashboardView.vue";
 import HomeView from "../views/HomeView.vue";
@@ -108,6 +106,16 @@ const routes = [
     name: "rate",
     component: RateView,
     meta: { requiresAuth: true },
+  },
+
+  {
+    path: "/reports/customer-deposits",
+    name: "customer-deposit-report",
+    component: CustomerDepositReport,
+    meta: {
+      requiresAuth: true,
+      adminOnly: true,
+    },
   },
 
   {
@@ -224,9 +232,7 @@ router.beforeEach(async (to) => {
   }
 
   const allowedRoles = to.matched.flatMap((record) =>
-    Array.isArray(record.meta.allowedRoles)
-      ? record.meta.allowedRoles
-      : [],
+    Array.isArray(record.meta.allowedRoles) ? record.meta.allowedRoles : [],
   );
 
   if (
@@ -239,9 +245,7 @@ router.beforeEach(async (to) => {
       : { name: "dashboard" };
   }
 
-  const adminOnly = to.matched.some(
-    (record) => record.meta.adminOnly === true,
-  );
+  const adminOnly = to.matched.some((record) => record.meta.adminOnly === true);
 
   if (adminOnly && role !== "admin") {
     return role === "customer"
