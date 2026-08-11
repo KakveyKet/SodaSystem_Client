@@ -4,7 +4,9 @@ import { useAuthStore } from "../stores/auth";
 
 import CategoryView from "../views/CategoryView.vue";
 import CustomerBalance from "../views/CustomerBalance.vue";
-import CustomerDepositReport from "../views/CustomerDepositReport.vue";
+import CustomerInvoices from "../views/CustomerInvoices.vue";
+import CustomerProfile from "../views/CustomerProfile.vue";
+import CustomerReport from "../views/CustomerReport.vue";
 import CustomerView from "../views/CustomerView.vue";
 import DashboardView from "../views/DashboardView.vue";
 import HomeView from "../views/HomeView.vue";
@@ -15,6 +17,14 @@ import ProfileView from "../views/ProfileView.vue";
 import RateView from "../views/RateView.vue";
 import SuperAdmin from "../views/SuperAdmin.vue";
 import User from "../views/User.vue";
+import CustomerDepositReport from "../views/CustomerDepositReport.vue";
+
+const customerPortalMeta = {
+  requiresAuth: true,
+  allowedRoles: ["customer"],
+  customerPortal: true,
+  hideNavBar: true,
+};
 
 const routes = [
   {
@@ -27,15 +37,46 @@ const routes = [
     },
   },
 
+  /*
+  |--------------------------------------------------------------------------
+  | Customer portal
+  |--------------------------------------------------------------------------
+  |
+  | Bottom navigation order:
+  | Report -> Invoice -> Home -> Profile
+  |
+  */
+  {
+    path: "/customer/home",
+    name: "customer-home",
+    component: CustomerBalance,
+    meta: customerPortalMeta,
+  },
+  {
+    path: "/customer/report",
+    name: "customer-report",
+    component: CustomerReport,
+    meta: customerPortalMeta,
+  },
+  {
+    path: "/customer/invoices",
+    name: "customer-invoices",
+    component: CustomerInvoices,
+    meta: customerPortalMeta,
+  },
+  {
+    path: "/customer/profile",
+    name: "customer-profile",
+    component: CustomerProfile,
+    meta: customerPortalMeta,
+  },
+
+  /* Keep old customer URL and route name working. */
   {
     path: "/customer-balance",
     name: "customer-balance",
-    component: CustomerBalance,
-    meta: {
-      requiresAuth: true,
-      allowedRoles: ["customer"],
-      hideNavBar: true,
-    },
+    redirect: { name: "customer-home" },
+    meta: customerPortalMeta,
   },
 
   {
@@ -109,6 +150,13 @@ const routes = [
   },
 
   {
+    path: "/profile",
+    name: "profile",
+    component: ProfileView,
+    meta: { requiresAuth: true },
+  },
+
+  {
     path: "/reports/customer-deposits",
     name: "customer-deposit-report",
     component: CustomerDepositReport,
@@ -116,13 +164,6 @@ const routes = [
       requiresAuth: true,
       adminOnly: true,
     },
-  },
-
-  {
-    path: "/profile",
-    name: "profile",
-    component: ProfileView,
-    meta: { requiresAuth: true },
   },
 
   {
@@ -161,7 +202,6 @@ router.beforeEach(async (to) => {
   const storedToken = localStorage.getItem("token");
   const hasToken = Boolean(auth.token || storedToken);
 
-  /* Restore the current account before applying role rules. */
   if (hasToken && !auth.user && typeof auth.fetchCurrentUser === "function") {
     try {
       await auth.fetchCurrentUser();
@@ -183,31 +223,17 @@ router.beforeEach(async (to) => {
   const isAuthenticated = Boolean(auth.token && auth.user);
   const role = auth.user?.role || null;
 
-  /*
-   * Strict customer restriction:
-   * an authenticated customer can access only /customer-balance.
-   */
-  if (
-    isAuthenticated &&
-    role === "customer" &&
-    to.name !== "customer-balance"
-  ) {
-    return { name: "customer-balance" };
-  }
-
-  /* Secret admin registration stays public for unauthenticated visitors. */
   if (to.meta.alwaysAllow === true) {
     return true;
   }
 
-  /* Login behavior. */
   if (to.name === "login") {
     if (!isAuthenticated) {
       return true;
     }
 
     return role === "customer"
-      ? { name: "customer-balance" }
+      ? { name: "customer-home" }
       : { name: "dashboard" };
   }
 
@@ -222,12 +248,17 @@ router.beforeEach(async (to) => {
     };
   }
 
-  /* Only customer may access customer-balance. */
-  if (
-    isAuthenticated &&
-    to.name === "customer-balance" &&
-    role !== "customer"
-  ) {
+  const isCustomerPortalRoute = to.matched.some(
+    (record) => record.meta.customerPortal === true,
+  );
+
+  /* Customers stay inside the four-page customer portal. */
+  if (isAuthenticated && role === "customer" && !isCustomerPortalRoute) {
+    return { name: "customer-home" };
+  }
+
+  /* Admin/user accounts cannot open customer-only portal pages. */
+  if (isAuthenticated && role !== "customer" && isCustomerPortalRoute) {
     return { name: "dashboard" };
   }
 
@@ -241,7 +272,7 @@ router.beforeEach(async (to) => {
     !allowedRoles.includes(role)
   ) {
     return role === "customer"
-      ? { name: "customer-balance" }
+      ? { name: "customer-home" }
       : { name: "dashboard" };
   }
 
@@ -249,7 +280,7 @@ router.beforeEach(async (to) => {
 
   if (adminOnly && role !== "admin") {
     return role === "customer"
-      ? { name: "customer-balance" }
+      ? { name: "customer-home" }
       : { name: "dashboard" };
   }
 

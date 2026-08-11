@@ -732,6 +732,11 @@ export default {
       preparing: "កំពុងរៀបចំវិក្កយបត្រ...",
 
       prepareError: "មិនអាចរៀបចំវិក្កយបត្រនេះសម្រាប់បោះពុម្ពបានទេ។",
+      customerBalanceCalculation: "ការគណនាសមតុល្យអតិថិជន",
+      balanceBeforeInvoice: "សមតុល្យអតិថិជនមុនវិក្កយបត្រ",
+      invoiceTotalResult: "លទ្ធផលសរុបវិក្កយបត្រ",
+      balanceAfterInvoice: "សមតុល្យអតិថិជនក្រោយវិក្កយបត្រ",
+      balanceCalculation: "ការគណនា",
     },
 
     messages: {
@@ -913,55 +918,47 @@ export default {
     },
   },
 
-  customerDepositReport: {
-    title: "របាយការណ៍ប្រាក់កម្ចី / ប្រាក់ដាក់អតិថិជន",
-
+  customerTransactionReport: {
+    title: "របាយការណ៍ប្រតិបត្តិការសមតុល្យអតិថិជន",
     currentWeekHint:
       "បង្ហាញលំនាំដើមសម្រាប់សប្ដាហ៍បច្ចុប្បន្ន (ថ្ងៃចន្ទ ដល់ ថ្ងៃអាទិត្យ)",
-
-    transactionsTitle: "ប្រតិបត្តិការប្រាក់ដាក់",
-
-    loading: "កំពុងផ្ទុកប្រតិបត្តិការ...",
-
-    empty: "មិនមានប្រតិបត្តិការប្រាក់ដាក់សម្រាប់រយៈពេលនេះទេ។",
+    transactionsTitle: "ប្រតិបត្តិការអតិថិជន",
+    empty: "មិនមានប្រតិបត្តិការអតិថិជនសម្រាប់រយៈពេលនេះទេ។",
 
     fields: {
       date: "កាលបរិច្ឆេទ",
-
       customer: "អតិថិជន",
-
       dateRange: "ចន្លោះកាលបរិច្ឆេទ",
-
-      loanDeposit: "ប្រាក់កម្ចី / ប្រាក់ដាក់",
-
+      type: "ប្រភេទ",
+      change: "ការប្រែប្រួលសមតុល្យ",
       before: "សមតុល្យមុន",
-
       after: "សមតុល្យក្រោយ",
-
       description: "បរិយាយ",
     },
 
     filters: {
       title: "តម្រងរបាយការណ៍",
-
       allCustomers: "អតិថិជនទាំងអស់",
+    },
+
+    types: {
+      deposit: "ប្រាក់ដាក់",
+      withdraw: "ដកប្រាក់",
+      invoice: "វិក្កយបត្រ",
     },
 
     actions: {
       search: "ស្វែងរក",
-
       reset: "កំណត់ឡើងវិញ",
-
       print: "បោះពុម្ព",
     },
 
     defaults: {
-      description: "ប្រាក់កម្ចី / ប្រាក់ដាក់អតិថិជន",
+      deletedCustomer: "អតិថិជនដែលបានលុប",
     },
 
     errors: {
-      fetch: "មិនអាចផ្ទុករបាយការណ៍ប្រាក់ដាក់អតិថិជនបានទេ",
-
+      fetch: "មិនអាចផ្ទុករបាយការណ៍ប្រតិបត្តិការសមតុល្យអតិថិជនបានទេ",
       popupBlocked:
         "កម្មវិធីរុករកបានរារាំងផ្ទាំងបោះពុម្ព។ សូមអនុញ្ញាត Popup ដើម្បីបោះពុម្ពរបាយការណ៍។",
     },

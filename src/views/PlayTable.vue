@@ -1,21 +1,21 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { useI18n } from "vue-i18n";
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-import Button from "primevue/button";
-import Card from "primevue/card";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import DatePicker from "primevue/datepicker";
-import Dialog from "primevue/dialog";
-import InputNumber from "primevue/inputnumber";
-import InputText from "primevue/inputtext";
-import Message from "primevue/message";
-import MultiSelect from "primevue/multiselect";
-import Select from "primevue/select";
-import ToggleSwitch from "primevue/toggleswitch";
+import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Column from 'primevue/column';
+import DataTable from 'primevue/datatable';
+import DatePicker from 'primevue/datepicker';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
+import Select from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
 
-import api from "../services/api";
+import api from '../services/api';
 
 const { t, locale } = useI18n();
 
@@ -26,8 +26,8 @@ const THREE_DIGIT_WIN_MULTIPLIER = 600;
 const OVERLAY_Z_INDEX = 30000;
 
 const PRODUCT_KIND = Object.freeze({
-  TWO_DIGIT: "2d",
-  THREE_DIGIT: "3d",
+  TWO_DIGIT: '2d',
+  THREE_DIGIT: '3d'
 });
 
 /* --------------------------------------------------------------------------
@@ -37,7 +37,11 @@ const PRODUCT_KIND = Object.freeze({
 const getTodayDate = () => {
   const now = new Date();
 
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
 };
 
 const createDefaultDateRange = () => {
@@ -47,13 +51,15 @@ const createDefaultDateRange = () => {
 };
 
 const formatDateForApi = (value) => {
-  if (!value) return "";
+  if (!value) return '';
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return '';
 
   const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+  return new Date(date.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
 };
 
 const parseDatePickerValue = (value) => {
@@ -75,21 +81,25 @@ const isSameLocalDate = (firstDate, secondDate) => {
 };
 
 const formatDate = (value) => {
-  if (!value) return "-";
+  if (!value) return '-';
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return '-';
 
-  return date.toLocaleString(locale.value === "km" ? "km-KH" : "en-GB");
+  return date.toLocaleString(
+    locale.value === 'km' ? 'km-KH' : 'en-GB'
+  );
 };
 
 const formatDateOnly = (value) => {
-  if (!value) return "-";
+  if (!value) return '-';
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return '-';
 
-  return date.toLocaleDateString(locale.value === "km" ? "km-KH" : "en-GB");
+  return date.toLocaleDateString(
+    locale.value === 'km' ? 'km-KH' : 'en-GB'
+  );
 };
 
 /* --------------------------------------------------------------------------
@@ -108,8 +118,8 @@ const deleteDialogVisible = ref(false);
 const mobileFiltersVisible = ref(false);
 
 const isEditMode = ref(false);
-const errorMessage = ref("");
-const successMessage = ref("");
+const errorMessage = ref('');
+const successMessage = ref('');
 
 const selectedDeletePlay = ref(null);
 const selectedDetailPlay = ref(null);
@@ -126,19 +136,19 @@ const totalRecords = ref(0);
 const page = ref(1);
 const limit = ref(10);
 
-const search = ref("");
+const search = ref('');
 const filterCategoryId = ref(null);
 const filterProductId = ref(null);
 const filterDateRange = ref(createDefaultDateRange());
 
 const playForm = ref({
   id: null,
-  title: "",
+  title: '',
   productIds: [],
   customerId: null,
   playDate: new Date(),
   twoDigitRate: null,
-  threeDigitRate: null,
+  threeDigitRate: null
 });
 
 const playRows = ref([]);
@@ -154,7 +164,7 @@ const makeLocalId = () => {
 const getId = (value) => {
   if (!value) return null;
 
-  if (typeof value === "object") {
+  if (typeof value === 'object') {
     return value.id || value._id || null;
   }
 
@@ -174,7 +184,9 @@ const normalizeSelectedIds = (values, legacyValue = null) => {
         ? [legacyValue]
         : [];
 
-  return Array.from(new Set(source.map(toIdString).filter(Boolean)));
+  return Array.from(
+    new Set(source.map(toIdString).filter(Boolean))
+  );
 };
 
 const extractArrayData = (response, keys = []) => {
@@ -196,9 +208,9 @@ const extractArrayData = (response, keys = []) => {
 };
 
 const normalizeProductText = (value) => {
-  return String(value ?? "")
+  return String(value ?? '')
     .toLowerCase()
-    .replace(/[\s_\-–—()]/g, "");
+    .replace(/[\s_\-–—()]/g, '');
 };
 
 const getProductKind = (product) => {
@@ -209,28 +221,28 @@ const getProductKind = (product) => {
     product.numberType,
     product.productType,
     product.code,
-    product.name,
+    product.name
   ];
 
   for (const value of values) {
     const normalized = normalizeProductText(value);
 
     if (
-      normalized === "2" ||
-      normalized === "2d" ||
-      normalized.includes("2លេខ") ||
-      normalized.includes("លេខ2") ||
-      normalized.includes("twodigit")
+      normalized === '2' ||
+      normalized === '2d' ||
+      normalized.includes('2លេខ') ||
+      normalized.includes('លេខ2') ||
+      normalized.includes('twodigit')
     ) {
       return PRODUCT_KIND.TWO_DIGIT;
     }
 
     if (
-      normalized === "3" ||
-      normalized === "3d" ||
-      normalized.includes("3លេខ") ||
-      normalized.includes("លេខ3") ||
-      normalized.includes("threedigit")
+      normalized === '3' ||
+      normalized === '3d' ||
+      normalized.includes('3លេខ') ||
+      normalized.includes('លេខ3') ||
+      normalized.includes('threedigit')
     ) {
       return PRODUCT_KIND.THREE_DIGIT;
     }
@@ -241,7 +253,9 @@ const getProductKind = (product) => {
 
 const getProductCategoryId = (product) => {
   return toIdString(
-    product?.category || product?.categoryId || product?.category_id,
+    product?.category ||
+      product?.categoryId ||
+      product?.category_id
   );
 };
 
@@ -250,7 +264,9 @@ const findProductById = (productId) => {
   if (!target) return null;
 
   return (
-    products.value.find((product) => toIdString(product) === target) || null
+    products.value.find(
+      (product) => toIdString(product) === target
+    ) || null
   );
 };
 
@@ -259,7 +275,9 @@ const findCategoryById = (categoryId) => {
   if (!target) return null;
 
   return (
-    categories.value.find((category) => toIdString(category) === target) || null
+    categories.value.find(
+      (category) => toIdString(category) === target
+    ) || null
   );
 };
 
@@ -268,15 +286,17 @@ const findCustomerById = (customerId) => {
   if (!target) return null;
 
   return (
-    customers.value.find((customer) => toIdString(customer) === target) || null
+    customers.value.find(
+      (customer) => toIdString(customer) === target
+    ) || null
   );
 };
 
 const getCustomerUsername = (customer) => {
-  if (!customer) return "";
+  if (!customer) return '';
 
   const linkedUser =
-    customer.userId && typeof customer.userId === "object"
+    customer.userId && typeof customer.userId === 'object'
       ? customer.userId
       : null;
 
@@ -286,15 +306,15 @@ const getCustomerUsername = (customer) => {
     customer.name ||
     linkedUser?.email ||
     customer.email ||
-    ""
+    ''
   );
 };
 
 const formatCustomerLabel = (customer) => {
   const username = getCustomerUsername(customer);
-  const branch = String(customer?.branchId || "").trim();
+  const branch = String(customer?.branchId || '').trim();
 
-  if (!username && !branch) return "-";
+  if (!username && !branch) return '-';
   if (username && branch) return `${username} — ${branch}`;
 
   return username || branch;
@@ -308,8 +328,8 @@ const categoryOptions = computed(() => {
   return categories.value
     .filter((category) => category?.status !== false)
     .map((category) => ({
-      label: category.name || "-",
-      value: toIdString(category),
+      label: category.name || '-',
+      value: toIdString(category)
     }))
     .filter((option) => option.value);
 });
@@ -318,20 +338,22 @@ const productOptions = computed(() => {
   return products.value
     .filter((product) => product?.status !== false)
     .map((product) => {
-      const category = findCategoryById(getProductCategoryId(product));
+      const category = findCategoryById(
+        getProductCategoryId(product)
+      );
       const kind = getProductKind(product);
       const kindLabel =
         kind === PRODUCT_KIND.TWO_DIGIT
-          ? "2D"
+          ? '2D'
           : kind === PRODUCT_KIND.THREE_DIGIT
-            ? "3D"
-            : "";
+            ? '3D'
+            : '';
 
       return {
         label: [product.name, category?.name, kindLabel]
           .filter(Boolean)
-          .join(" — "),
-        value: toIdString(product),
+          .join(' — '),
+        value: toIdString(product)
       };
     })
     .filter((option) => option.value);
@@ -342,13 +364,15 @@ const customerOptions = computed(() => {
     .filter((customer) => customer?.status !== false)
     .map((customer) => ({
       label: formatCustomerLabel(customer),
-      value: toIdString(customer),
+      value: toIdString(customer)
     }))
     .filter((option) => option.value);
 });
 
 const filterProductOptions = computed(() => {
-  let list = products.value.filter((product) => product?.status !== false);
+  let list = products.value.filter(
+    (product) => product?.status !== false
+  );
 
   if (filterCategoryId.value) {
     const selectedCategoryId = String(filterCategoryId.value);
@@ -360,8 +384,8 @@ const filterProductOptions = computed(() => {
 
   return list
     .map((product) => ({
-      label: product.name || "-",
-      value: toIdString(product),
+      label: product.name || '-',
+      value: toIdString(product)
     }))
     .filter((option) => option.value);
 });
@@ -382,7 +406,7 @@ const rateOptions = computed(() => {
 
     map.set(number, {
       label: rate.name ? `${rate.name} (${number}%)` : `${number}%`,
-      value: number,
+      value: number
     });
   });
 
@@ -390,13 +414,13 @@ const rateOptions = computed(() => {
     if (!map.has(number)) {
       map.set(number, {
         label: `${number}%`,
-        value: number,
+        value: number
       });
     }
   });
 
   return Array.from(map.values()).sort(
-    (first, second) => first.value - second.value,
+    (first, second) => first.value - second.value
   );
 });
 
@@ -408,7 +432,9 @@ const isAvailableRate = (value) => {
 
   return (
     number !== null &&
-    rateOptions.value.some((option) => Number(option.value) === number)
+    rateOptions.value.some(
+      (option) => Number(option.value) === number
+    )
   );
 };
 
@@ -421,18 +447,22 @@ const getPreferredRate = (preferredRate) => {
 };
 
 const selectedProducts = computed(() => {
-  return playForm.value.productIds.map(findProductById).filter(Boolean);
+  return playForm.value.productIds
+    .map(findProductById)
+    .filter(Boolean);
 });
 
 const hasTwoDigitProduct = computed(() => {
   return selectedProducts.value.some(
-    (product) => getProductKind(product) === PRODUCT_KIND.TWO_DIGIT,
+    (product) =>
+      getProductKind(product) === PRODUCT_KIND.TWO_DIGIT
   );
 });
 
 const hasThreeDigitProduct = computed(() => {
   return selectedProducts.value.some(
-    (product) => getProductKind(product) === PRODUCT_KIND.THREE_DIGIT,
+    (product) =>
+      getProductKind(product) === PRODUCT_KIND.THREE_DIGIT
   );
 });
 
@@ -453,16 +483,19 @@ const hasActiveFilters = computed(() => {
 
   return Boolean(
     search.value.trim() ||
-    filterCategoryId.value ||
-    filterProductId.value ||
-    dateChanged,
+      filterCategoryId.value ||
+      filterProductId.value ||
+      dateChanged
   );
 });
 
 const totalPages = computed(() => {
   return Math.max(
-    Math.ceil(Number(totalRecords.value || 0) / Number(limit.value || 10)),
-    1,
+    Math.ceil(
+      Number(totalRecords.value || 0) /
+        Number(limit.value || 10)
+    ),
+    1
   );
 });
 
@@ -472,35 +505,49 @@ const totalPages = computed(() => {
 
 const createEmptyPlayRow = () => ({
   localId: makeLocalId(),
-  rowTitle: "",
+  rowTitle: '',
   categoryId: null,
   twoDigitNumber: null,
   threeDigitNumber: null,
   winTwoNumberType: null,
   winThreeNumberType: null,
   isTwoNumber: false,
-  isThreeNumber: false,
+  isThreeNumber: false
 });
 
 const synchronizeProductsWithRows = ({
   clearDisabled = true,
-  applyDefaultRates = true,
+  applyDefaultRates = true
 } = {}) => {
   playForm.value.productIds = Array.from(
-    new Set(playForm.value.productIds.map(toIdString).filter(Boolean)),
+    new Set(
+      playForm.value.productIds
+        .map(toIdString)
+        .filter(Boolean)
+    )
   ).slice(0, 2);
 
   if (hasTwoDigitProduct.value) {
-    if (applyDefaultRates && !isAvailableRate(playForm.value.twoDigitRate)) {
-      playForm.value.twoDigitRate = getPreferredRate(TWO_DIGIT_RATE);
+    if (
+      applyDefaultRates &&
+      !isAvailableRate(playForm.value.twoDigitRate)
+    ) {
+      playForm.value.twoDigitRate = getPreferredRate(
+        TWO_DIGIT_RATE
+      );
     }
   } else {
     playForm.value.twoDigitRate = null;
   }
 
   if (hasThreeDigitProduct.value) {
-    if (applyDefaultRates && !isAvailableRate(playForm.value.threeDigitRate)) {
-      playForm.value.threeDigitRate = getPreferredRate(THREE_DIGIT_RATE);
+    if (
+      applyDefaultRates &&
+      !isAvailableRate(playForm.value.threeDigitRate)
+    ) {
+      playForm.value.threeDigitRate = getPreferredRate(
+        THREE_DIGIT_RATE
+      );
     }
   } else {
     playForm.value.threeDigitRate = null;
@@ -528,32 +575,32 @@ const synchronizeProductsWithRows = ({
 };
 
 const onProductSelectionChange = () => {
-  errorMessage.value = "";
+  errorMessage.value = '';
   synchronizeProductsWithRows({ clearDisabled: true });
 };
 
 const resetPlayForm = () => {
   playForm.value = {
     id: null,
-    title: "",
+    title: '',
     productIds: [],
     customerId: null,
     playDate: new Date(),
     twoDigitRate: null,
-    threeDigitRate: null,
+    threeDigitRate: null
   };
 
   playRows.value = [createEmptyPlayRow()];
 };
 
 const addPlayRow = () => {
-  errorMessage.value = "";
+  errorMessage.value = '';
   playRows.value.push(createEmptyPlayRow());
 };
 
 const removePlayRow = (index) => {
   if (playRows.value.length === 1) {
-    errorMessage.value = t("invoice.errors.atLeastOneRow");
+    errorMessage.value = t('invoice.errors.atLeastOneRow');
     return;
   }
 
@@ -566,7 +613,9 @@ const duplicatePlayRow = (index) => {
   playRows.value.splice(index + 1, 0, {
     ...row,
     localId: makeLocalId(),
-    rowTitle: row.rowTitle ? `${row.rowTitle} ${t("invoice.copySuffix")}` : "",
+    rowTitle: row.rowTitle
+      ? `${row.rowTitle} ${t('invoice.copySuffix')}`
+      : ''
   });
 };
 
@@ -590,7 +639,7 @@ const getPlayRows = (play) => {
 const getPlayCalculation = (
   rows = [],
   twoDigitRate = 100,
-  threeDigitRate = 100,
+  threeDigitRate = 100
 ) => {
   let twoDigitBaseTotal = 0;
   let threeDigitBaseTotal = 0;
@@ -600,23 +649,29 @@ const getPlayCalculation = (
   rows.forEach((row) => {
     if (row.isTwoNumber) {
       twoDigitBaseTotal += Number(row.twoDigitNumber || 0);
-      twoDigitCorrectTotal += Number(row.winTwoNumberType || 0);
+      twoDigitCorrectTotal += Number(
+        row.winTwoNumberType || 0
+      );
     }
 
     if (row.isThreeNumber) {
-      threeDigitBaseTotal += Number(row.threeDigitNumber || 0);
-      threeDigitCorrectTotal += Number(row.winThreeNumberType || 0);
+      threeDigitBaseTotal += Number(
+        row.threeDigitNumber || 0
+      );
+      threeDigitCorrectTotal += Number(
+        row.winThreeNumberType || 0
+      );
     }
   });
 
   const twoDigitGrandTotal = calculateAmountWithRate(
     twoDigitBaseTotal,
-    twoDigitRate,
+    twoDigitRate
   );
 
   const threeDigitGrandTotal = calculateAmountWithRate(
     threeDigitBaseTotal,
-    threeDigitRate,
+    threeDigitRate
   );
 
   const twoDigitCorrectDeduction =
@@ -640,7 +695,7 @@ const getPlayCalculation = (
       twoDigitGrandTotal +
       threeDigitGrandTotal -
       twoDigitCorrectDeduction -
-      threeDigitCorrectDeduction,
+      threeDigitCorrectDeduction
   };
 };
 
@@ -654,13 +709,17 @@ const toSignedPlayResultNumber = (value) => {
 };
 
 const getPlayResultCalculation = (calculation) => {
-  const twoDigitResult = toPlayResultNumber(calculation.twoDigitGrandTotal);
-  const threeDigitResult = toPlayResultNumber(calculation.threeDigitGrandTotal);
+  const twoDigitResult = toPlayResultNumber(
+    calculation.twoDigitGrandTotal
+  );
+  const threeDigitResult = toPlayResultNumber(
+    calculation.threeDigitGrandTotal
+  );
   const twoDigitCorrectResult = toPlayResultNumber(
-    calculation.twoDigitCorrectDeduction,
+    calculation.twoDigitCorrectDeduction
   );
   const threeDigitCorrectResult = toPlayResultNumber(
-    calculation.threeDigitCorrectDeduction,
+    calculation.threeDigitCorrectDeduction
   );
 
   return {
@@ -669,19 +728,20 @@ const getPlayResultCalculation = (calculation) => {
     twoDigitCorrectResult,
     threeDigitCorrectResult,
     playResultTotal: twoDigitResult + threeDigitResult,
-    correctDeductionTotal: twoDigitCorrectResult + threeDigitCorrectResult,
+    correctDeductionTotal:
+      twoDigitCorrectResult + threeDigitCorrectResult,
     grandTotal:
       twoDigitResult +
       threeDigitResult -
       twoDigitCorrectResult -
-      threeDigitCorrectResult,
+      threeDigitCorrectResult
   };
 };
 
 const getLegacyCategoryId = (play) => {
   const legacyIds = normalizeSelectedIds(
     play?.categoryIds,
-    play?.categoryId || play?.category,
+    play?.categoryId || play?.category
   );
 
   return legacyIds[0] || null;
@@ -696,36 +756,36 @@ const getRowCategoryId = (row, legacyCategoryId = null) => {
 };
 
 const getRowCategoryName = (row, legacyCategoryId = null) => {
-  if (row?.categoryId && typeof row.categoryId === "object") {
-    return row.categoryId.name || "-";
+  if (row?.categoryId && typeof row.categoryId === 'object') {
+    return row.categoryId.name || '-';
   }
 
-  if (row?.category && typeof row.category === "object") {
-    return row.category.name || "-";
+  if (row?.category && typeof row.category === 'object') {
+    return row.category.name || '-';
   }
 
   const categoryId = getRowCategoryId(row, legacyCategoryId);
-  return findCategoryById(categoryId)?.name || "-";
+  return findCategoryById(categoryId)?.name || '-';
 };
 
 const getCategoryCalculationGroups = (
   rows = [],
   twoDigitRate = 100,
   threeDigitRate = 100,
-  legacyCategoryId = null,
+  legacyCategoryId = null
 ) => {
   const groups = new Map();
 
   rows.forEach((row) => {
     const categoryId = getRowCategoryId(row, legacyCategoryId);
-    const key = categoryId || "__uncategorized__";
+    const key = categoryId || '__uncategorized__';
     const categoryName = getRowCategoryName(row, legacyCategoryId);
 
     if (!groups.has(key)) {
       groups.set(key, {
         categoryId,
         categoryName,
-        rows: [],
+        rows: []
       });
     }
 
@@ -736,13 +796,13 @@ const getCategoryCalculationGroups = (
     const calculation = getPlayCalculation(
       group.rows,
       twoDigitRate,
-      threeDigitRate,
+      threeDigitRate
     );
 
     return {
       ...group,
       calculation,
-      result: getPlayResultCalculation(calculation),
+      result: getPlayResultCalculation(calculation)
     };
   });
 };
@@ -751,7 +811,7 @@ const formCategoryGroups = computed(() => {
   return getCategoryCalculationGroups(
     playRows.value,
     playForm.value.twoDigitRate || 100,
-    playForm.value.threeDigitRate || 100,
+    playForm.value.threeDigitRate || 100
   );
 });
 
@@ -760,7 +820,7 @@ const detailCategoryGroups = computed(() => {
     detailRows.value,
     selectedDetailPlay.value?.twoDigitRate || 100,
     selectedDetailPlay.value?.threeDigitRate || 100,
-    getLegacyCategoryId(selectedDetailPlay.value),
+    getLegacyCategoryId(selectedDetailPlay.value)
   );
 });
 
@@ -782,22 +842,24 @@ const buildCategoryGrandTotalExpression = (groups = []) => {
   return groups
     .map((group, index) => {
       const value = getCategoryGroupSignedTotal(group);
-      const absoluteValue = Math.abs(value).toLocaleString("en-US");
+      const absoluteValue = Math.abs(value).toLocaleString('en-US');
 
       // Show only the category result numbers.
       // Example: -235 + 54 - 10
       // No category names such as (ថ្ងៃ) or (យប់).
       if (index === 0) {
-        return `${value < 0 ? "-" : ""}${absoluteValue}`;
+        return `${value < 0 ? '-' : ''}${absoluteValue}`;
       }
 
-      return `${value < 0 ? "-" : "+"} ${absoluteValue}`;
+      return `${value < 0 ? '-' : '+'} ${absoluteValue}`;
     })
-    .join(" ");
+    .join(' ');
 };
 
 const getInvoiceGrandTotalLabel = () => {
-  return locale.value === "km" ? "សរុបវិក្កយបត្រ" : "Invoice Total";
+  return locale.value === 'km'
+    ? 'សរុបវិក្កយបត្រ'
+    : 'Invoice Total';
 };
 
 const formCategoryGrandTotal = computed(() => {
@@ -818,30 +880,32 @@ const detailCategoryGrandTotalExpression = computed(() => {
 
 const formatRate = (value) => {
   const rate = Number(value || 0);
-  return rate > 0 ? `${rate}%` : "";
+  return rate > 0 ? `${rate}%` : '';
 };
 
 const formatPlainNumber = (value) => {
-  return Number(value || 0).toLocaleString("en-US", {
-    maximumFractionDigits: 2,
+  return Number(value || 0).toLocaleString('en-US', {
+    maximumFractionDigits: 2
   });
 };
 
 const formatPlayResult = (value) => {
-  return toPlayResultNumber(value).toLocaleString("en-US");
+  return toPlayResultNumber(value).toLocaleString('en-US');
 };
 
 const formatSignedPlayResult = (value) => {
-  return toSignedPlayResultNumber(value).toLocaleString("en-US");
+  return toSignedPlayResultNumber(value).toLocaleString('en-US');
 };
 
 const getGrandTotalColorClass = (value) => {
-  return Number(value || 0) >= 0 ? "text-blue-600" : "text-red-600";
+  return Number(value || 0) >= 0
+    ? 'text-blue-600'
+    : 'text-red-600';
 };
 
 const formatNumberType = (value) => {
   const number = Number(value || 0);
-  return number > 0 ? number : "";
+  return number > 0 ? number : '';
 };
 
 /* --------------------------------------------------------------------------
@@ -854,24 +918,24 @@ const getCategoryName = (play) => {
 
   const names = rows
     .map((row) => getRowCategoryName(row, legacyCategoryId))
-    .filter((name) => name && name !== "-");
+    .filter((name) => name && name !== '-');
 
   const uniqueNames = Array.from(new Set(names));
 
   if (uniqueNames.length) {
-    return uniqueNames.join(", ");
+    return uniqueNames.join(', ');
   }
 
   const legacyIds = normalizeSelectedIds(
     play?.categoryIds,
-    play?.categoryId || play?.category,
+    play?.categoryId || play?.category
   );
 
   return (
     legacyIds
-      .map((categoryId) => findCategoryById(categoryId)?.name || "")
+      .map((categoryId) => findCategoryById(categoryId)?.name || '')
       .filter(Boolean)
-      .join(", ") || "-"
+      .join(', ') || '-'
   );
 };
 
@@ -883,26 +947,26 @@ const getProductName = (play) => {
 
   const names = values
     .map((value) => {
-      if (value && typeof value === "object") {
-        return value.name || "";
+      if (value && typeof value === 'object') {
+        return value.name || '';
       }
 
-      return findProductById(value)?.name || "";
+      return findProductById(value)?.name || '';
     })
     .filter(Boolean);
 
-  return names.join(", ") || "-";
+  return names.join(', ') || '-';
 };
 
 const getCustomerName = (play) => {
   const value = play?.customerId || play?.customer;
-  if (!value) return "-";
+  if (!value) return '-';
 
-  if (typeof value === "object") {
-    return getCustomerUsername(value) || "-";
+  if (typeof value === 'object') {
+    return getCustomerUsername(value) || '-';
   }
 
-  return getCustomerUsername(findCustomerById(value)) || "-";
+  return getCustomerUsername(findCustomerById(value)) || '-';
 };
 
 /* --------------------------------------------------------------------------
@@ -910,46 +974,54 @@ const getCustomerName = (play) => {
  * -------------------------------------------------------------------------- */
 
 const fetchCategories = async () => {
-  const response = await api.get("/categories", {
-    params: { page: 1, limit: 500, status: true },
+  const response = await api.get('/categories', {
+    params: { page: 1, limit: 500, status: true }
   });
 
   categories.value = extractArrayData(response, [
-    "categories",
-    "items",
-    "results",
+    'categories',
+    'items',
+    'results'
   ]);
 };
 
 const fetchProducts = async () => {
-  const response = await api.get("/products", {
-    params: { page: 1, limit: 500, status: true },
+  const response = await api.get('/products', {
+    params: { page: 1, limit: 500, status: true }
   });
 
-  products.value = extractArrayData(response, ["products", "items", "results"]);
+  products.value = extractArrayData(response, [
+    'products',
+    'items',
+    'results'
+  ]);
 };
 
 const fetchCustomers = async () => {
-  const response = await api.get("/customers", {
-    params: { page: 1, limit: 500, status: true },
+  const response = await api.get('/customers', {
+    params: { page: 1, limit: 500, status: true }
   });
 
   customers.value = extractArrayData(response, [
-    "customers",
-    "items",
-    "results",
+    'customers',
+    'items',
+    'results'
   ]);
 };
 
 const fetchRates = async () => {
   try {
-    const response = await api.get("/rates", {
-      params: { page: 1, limit: 500, status: true },
+    const response = await api.get('/rates', {
+      params: { page: 1, limit: 500, status: true }
     });
 
-    rates.value = extractArrayData(response, ["rates", "items", "results"]);
+    rates.value = extractArrayData(response, [
+      'rates',
+      'items',
+      'results'
+    ]);
   } catch (error) {
-    console.warn("Fetch rates warning:", error);
+    console.warn('Fetch rates warning:', error);
     rates.value = [];
   }
 };
@@ -971,18 +1043,21 @@ const loadReferenceData = async ({ force = false } = {}) => {
       fetchCategories(),
       fetchProducts(),
       fetchCustomers(),
-      fetchRates(),
+      fetchRates()
     ]);
 
-    const failed = results.filter((result) => result.status === "rejected");
+    const failed = results.filter(
+      (result) => result.status === 'rejected'
+    );
 
     failed.forEach((result) => {
-      console.error("Reference data error:", result.reason);
+      console.error('Reference data error:', result.reason);
     });
 
     if (failed.length) {
       errorMessage.value =
-        failed[0].reason?.response?.data?.message || t("invoice.errors.fetch");
+        failed[0].reason?.response?.data?.message ||
+        t('invoice.errors.fetch');
     }
   } finally {
     referenceLoading.value = false;
@@ -996,7 +1071,7 @@ const loadReferenceData = async ({ force = false } = {}) => {
 const fetchLotteryPlays = async () => {
   try {
     loading.value = true;
-    errorMessage.value = "";
+    errorMessage.value = '';
 
     const range = Array.isArray(filterDateRange.value)
       ? filterDateRange.value
@@ -1006,7 +1081,7 @@ const fetchLotteryPlays = async () => {
 
     const params = {
       page: page.value,
-      limit: limit.value,
+      limit: limit.value
     };
 
     if (startDate) params.dateFrom = formatDateForApi(startDate);
@@ -1019,26 +1094,26 @@ const fetchLotteryPlays = async () => {
       params.productId = filterProductId.value;
     }
 
-    const response = await api.get("/lottery-plays", { params });
+    const response = await api.get('/lottery-plays', { params });
 
     lotteryPlays.value = extractArrayData(response, [
-      "lotteryPlays",
-      "plays",
-      "items",
-      "results",
+      'lotteryPlays',
+      'plays',
+      'items',
+      'results'
     ]);
 
     totalRecords.value = Number(
       response.data?.pagination?.total ??
         response.data?.data?.pagination?.total ??
-        lotteryPlays.value.length,
+        lotteryPlays.value.length
     );
   } catch (error) {
-    console.error("Fetch invoices error:", error);
+    console.error('Fetch invoices error:', error);
     lotteryPlays.value = [];
     totalRecords.value = 0;
     errorMessage.value =
-      error.response?.data?.message || t("invoice.errors.fetch");
+      error.response?.data?.message || t('invoice.errors.fetch');
   } finally {
     loading.value = false;
   }
@@ -1051,7 +1126,7 @@ const applyFilter = () => {
 };
 
 const clearFilter = () => {
-  search.value = "";
+  search.value = '';
   filterCategoryId.value = null;
   filterProductId.value = null;
   filterDateRange.value = createDefaultDateRange();
@@ -1087,8 +1162,8 @@ const goToNextPage = () => {
  * -------------------------------------------------------------------------- */
 
 const openCreateDialog = async () => {
-  errorMessage.value = "";
-  successMessage.value = "";
+  errorMessage.value = '';
+  successMessage.value = '';
 
   await loadReferenceData();
   resetPlayForm();
@@ -1098,8 +1173,8 @@ const openCreateDialog = async () => {
 };
 
 const openEditDialog = async (play) => {
-  errorMessage.value = "";
-  successMessage.value = "";
+  errorMessage.value = '';
+  successMessage.value = '';
 
   await loadReferenceData();
 
@@ -1107,27 +1182,29 @@ const openEditDialog = async (play) => {
 
   playForm.value = {
     id: play.id || play._id,
-    title: play.title || "",
+    title: play.title || '',
     productIds: normalizeSelectedIds(
       play.productIds,
-      play.productId || play.product,
+      play.productId || play.product
     ),
     customerId: toIdString(play.customerId || play.customer),
-    playDate: parseDatePickerValue(play.playDate || play.createdAt),
+    playDate: parseDatePickerValue(
+      play.playDate || play.createdAt
+    ),
     twoDigitRate: normalizeRateNumber(play.twoDigitRate),
-    threeDigitRate: normalizeRateNumber(play.threeDigitRate),
+    threeDigitRate: normalizeRateNumber(play.threeDigitRate)
   };
 
   playRows.value = getPlayRows(play).map((row) => ({
     localId: makeLocalId(),
-    rowTitle: row.rowTitle || row.title || "",
+    rowTitle: row.rowTitle || row.title || '',
     categoryId: getRowCategoryId(row, legacyCategoryId),
     twoDigitNumber: row.twoDigitNumber ?? null,
     threeDigitNumber: row.threeDigitNumber ?? null,
     winTwoNumberType: row.winTwoNumberType ?? null,
     winThreeNumberType: row.winThreeNumberType ?? null,
     isTwoNumber: Boolean(row.isTwoNumber),
-    isThreeNumber: Boolean(row.isThreeNumber),
+    isThreeNumber: Boolean(row.isThreeNumber)
   }));
 
   if (!playRows.value.length) {
@@ -1142,27 +1219,27 @@ const openEditDialog = async (play) => {
 
 const validatePlayForm = () => {
   if (!playForm.value.title.trim()) {
-    return t("invoice.errors.titleRequired");
+    return t('invoice.errors.titleRequired');
   }
 
   if (!playForm.value.productIds.length) {
-    return t("invoice.errors.productRequired");
+    return t('invoice.errors.productRequired');
   }
 
   if (!playForm.value.customerId) {
-    return t("invoice.errors.customerRequired");
+    return t('invoice.errors.customerRequired');
   }
 
   if (!playForm.value.playDate) {
-    return t("invoice.errors.dateRequired");
+    return t('invoice.errors.dateRequired');
   }
 
   const unknownProduct = selectedProducts.value.find(
-    (product) => !getProductKind(product),
+    (product) => !getProductKind(product)
   );
 
   if (unknownProduct) {
-    return locale.value === "km"
+    return locale.value === 'km'
       ? `ផលិតផល "${unknownProduct.name}" មិនទាន់កំណត់ជា 2 លេខ ឬ 3 លេខ`
       : `Product "${unknownProduct.name}" is not configured as 2D or 3D`;
   }
@@ -1171,18 +1248,18 @@ const validatePlayForm = () => {
     hasTwoDigitProduct.value &&
     !isAvailableRate(playForm.value.twoDigitRate)
   ) {
-    return t("invoice.errors.invalidTwoDigitRate");
+    return t('invoice.errors.invalidTwoDigitRate');
   }
 
   if (
     hasThreeDigitProduct.value &&
     !isAvailableRate(playForm.value.threeDigitRate)
   ) {
-    return t("invoice.errors.invalidThreeDigitRate");
+    return t('invoice.errors.invalidThreeDigitRate');
   }
 
   if (!playRows.value.length) {
-    return t("invoice.errors.atLeastOneRow");
+    return t('invoice.errors.atLeastOneRow');
   }
 
   for (let index = 0; index < playRows.value.length; index += 1) {
@@ -1190,29 +1267,29 @@ const validatePlayForm = () => {
     const rowNumber = index + 1;
 
     if (!row.categoryId) {
-      return locale.value === "km"
+      return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមជ្រើសប្រភេទ`
         : `Row ${rowNumber}: Please select a category`;
     }
 
     if (!row.rowTitle.trim()) {
-      return t("invoice.errors.rowNameRequired", { row: rowNumber });
+      return t('invoice.errors.rowNameRequired', { row: rowNumber });
     }
 
     if (!row.isTwoNumber && !row.isThreeNumber) {
-      return locale.value === "km"
+      return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមបើក 2D ឬ 3D យ៉ាងហោចណាស់មួយ`
         : `Row ${rowNumber}: Please enable 2D or 3D`;
     }
 
     if (row.isTwoNumber && !hasTwoDigitProduct.value) {
-      return locale.value === "km"
+      return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 2 លេខ មុនពេលបើក 2D`
         : `Row ${rowNumber}: Select a 2D product first`;
     }
 
     if (row.isThreeNumber && !hasThreeDigitProduct.value) {
-      return locale.value === "km"
+      return locale.value === 'km'
         ? `ជួរទី ${rowNumber}: សូមជ្រើសផលិតផល 3 លេខ មុនពេលបើក 3D`
         : `Row ${rowNumber}: Select a 3D product first`;
     }
@@ -1223,13 +1300,13 @@ const validatePlayForm = () => {
       if (
         row.twoDigitNumber === null ||
         row.twoDigitNumber === undefined ||
-        row.twoDigitNumber === ""
+        row.twoDigitNumber === ''
       ) {
-        return t("invoice.errors.twoDigitRequired", { row: rowNumber });
+        return t('invoice.errors.twoDigitRequired', { row: rowNumber });
       }
 
       if (!Number.isFinite(value) || value < 0) {
-        return locale.value === "km"
+        return locale.value === 'km'
           ? `ជួរទី ${rowNumber}: តម្លៃ 2D មិនត្រឹមត្រូវ`
           : `Row ${rowNumber}: 2D number must be valid and non-negative`;
       }
@@ -1241,22 +1318,22 @@ const validatePlayForm = () => {
       if (
         row.threeDigitNumber === null ||
         row.threeDigitNumber === undefined ||
-        row.threeDigitNumber === ""
+        row.threeDigitNumber === ''
       ) {
-        return t("invoice.errors.threeDigitRequired", {
-          row: rowNumber,
+        return t('invoice.errors.threeDigitRequired', {
+          row: rowNumber
         });
       }
 
       if (!Number.isFinite(value) || value < 0) {
-        return locale.value === "km"
+        return locale.value === 'km'
           ? `ជួរទី ${rowNumber}: តម្លៃ 3D មិនត្រឹមត្រូវ`
           : `Row ${rowNumber}: 3D number must be valid and non-negative`;
       }
     }
   }
 
-  return "";
+  return '';
 };
 
 const buildPayload = () => ({
@@ -1267,36 +1344,42 @@ const buildPayload = () => ({
   twoDigitRate: Number(
     playForm.value.twoDigitRate ||
       getPreferredRate(TWO_DIGIT_RATE) ||
-      TWO_DIGIT_RATE,
+      TWO_DIGIT_RATE
   ),
   threeDigitRate: Number(
     playForm.value.threeDigitRate ||
       getPreferredRate(THREE_DIGIT_RATE) ||
-      THREE_DIGIT_RATE,
+      THREE_DIGIT_RATE
   ),
   rows: playRows.value.map((row) => ({
     rowTitle: row.rowTitle.trim(),
     categoryId: String(row.categoryId),
-    twoDigitNumber: row.isTwoNumber ? Number(row.twoDigitNumber) : null,
-    threeDigitNumber: row.isThreeNumber ? Number(row.threeDigitNumber) : null,
-    winTwoNumberType: row.isTwoNumber ? Number(row.winTwoNumberType || 0) : 0,
+    twoDigitNumber: row.isTwoNumber
+      ? Number(row.twoDigitNumber)
+      : null,
+    threeDigitNumber: row.isThreeNumber
+      ? Number(row.threeDigitNumber)
+      : null,
+    winTwoNumberType: row.isTwoNumber
+      ? Number(row.winTwoNumberType || 0)
+      : 0,
     winThreeNumberType: row.isThreeNumber
       ? Number(row.winThreeNumberType || 0)
       : 0,
     isTwoNumber: Boolean(row.isTwoNumber),
     isThreeNumber: Boolean(row.isThreeNumber),
-    checkedStatus: false,
-  })),
+    checkedStatus: false
+  }))
 });
 
 const saveLotteryPlay = async () => {
   try {
-    errorMessage.value = "";
-    successMessage.value = "";
+    errorMessage.value = '';
+    successMessage.value = '';
 
     synchronizeProductsWithRows({
       clearDisabled: false,
-      applyDefaultRates: true,
+      applyDefaultRates: true
     });
 
     const validationError = validatePlayForm();
@@ -1309,19 +1392,28 @@ const saveLotteryPlay = async () => {
     const payload = buildPayload();
 
     if (isEditMode.value) {
-      await api.put(`/lottery-plays/${playForm.value.id}`, payload);
-      successMessage.value = t("invoice.messages.updated");
+      await api.put(
+        `/lottery-plays/${playForm.value.id}`,
+        payload
+      );
+      successMessage.value = t('invoice.messages.updated');
     } else {
-      await api.post("/lottery-plays", payload);
-      successMessage.value = t("invoice.messages.created");
+      await api.post('/lottery-plays', payload);
+      successMessage.value = t('invoice.messages.created');
     }
 
     dialogVisible.value = false;
-    await fetchLotteryPlays();
+
+    // Refresh both invoices and customers because saving an invoice changes
+    // the selected customer's latest balance on the backend.
+    await Promise.all([
+      fetchLotteryPlays(),
+      fetchCustomers()
+    ]);
   } catch (error) {
-    console.error("Save invoice error:", error);
+    console.error('Save invoice error:', error);
     errorMessage.value =
-      error.response?.data?.message || t("invoice.errors.save");
+      error.response?.data?.message || t('invoice.errors.save');
   } finally {
     saving.value = false;
   }
@@ -1347,17 +1439,17 @@ const openDetailDialog = async (play) => {
     selectedDetailPlay.value = freshPlay;
     detailRows.value = getPlayRows(freshPlay);
   } catch (error) {
-    console.error("Fetch invoice detail error:", error);
+    console.error('Fetch invoice detail error:', error);
     errorMessage.value =
-      error.response?.data?.message || t("invoice.errors.detail");
+      error.response?.data?.message || t('invoice.errors.detail');
   } finally {
     detailLoading.value = false;
   }
 };
 
 const openDeleteDialog = (play) => {
-  errorMessage.value = "";
-  successMessage.value = "";
+  errorMessage.value = '';
+  successMessage.value = '';
   selectedDeletePlay.value = play;
   deleteDialogVisible.value = true;
 };
@@ -1374,14 +1466,15 @@ const confirmDeleteLotteryPlay = async () => {
 
   try {
     deleting.value = true;
-    errorMessage.value = "";
-    successMessage.value = "";
+    errorMessage.value = '';
+    successMessage.value = '';
 
-    const playId = selectedDeletePlay.value.id || selectedDeletePlay.value._id;
+    const playId =
+      selectedDeletePlay.value.id || selectedDeletePlay.value._id;
 
     await api.delete(`/lottery-plays/${playId}`);
 
-    successMessage.value = t("invoice.messages.deleted");
+    successMessage.value = t('invoice.messages.deleted');
     deleteDialogVisible.value = false;
     selectedDeletePlay.value = null;
 
@@ -1389,11 +1482,15 @@ const confirmDeleteLotteryPlay = async () => {
       page.value -= 1;
     }
 
-    await fetchLotteryPlays();
+    // Deleting an applied invoice reverses its result from customer balance.
+    await Promise.all([
+      fetchLotteryPlays(),
+      fetchCustomers()
+    ]);
   } catch (error) {
-    console.error("Delete invoice error:", error);
+    console.error('Delete invoice error:', error);
     errorMessage.value =
-      error.response?.data?.message || t("invoice.errors.delete");
+      error.response?.data?.message || t('invoice.errors.delete');
   } finally {
     deleting.value = false;
   }
@@ -1404,12 +1501,101 @@ const confirmDeleteLotteryPlay = async () => {
  * -------------------------------------------------------------------------- */
 
 const escapeHtml = (value) => {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Invoice -> Customer balance print calculation
+|--------------------------------------------------------------------------
+|
+| Printed equation:
+|
+| Customer Balance Before Invoice
+| + Invoice Total Result
+| = Customer Balance After Invoice
+|
+| Example:
+| 1,000 + 5,000 = 6,000
+|
+| Negative invoice:
+| 1,000 + (-6,000) = -5,000
+|
+| Important for edited invoices:
+| `balanceBefore` can represent the balance before applying only the UPDATE
+| difference. For print/audit, we want the balance excluding the invoice's
+| CURRENT result. Therefore:
+|
+| balanceBeforeInvoice = balanceAfter - currentInvoiceResult
+|
+| This guarantees:
+|
+| balanceBeforeInvoice + currentInvoiceResult = balanceAfter
+|
+*/
+
+const formatBalanceAmount = (value) => {
+  const number = Number(value || 0);
+
+  return number.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+};
+
+const formatBalanceInvoiceOperand = (value) => {
+  const number = Number(value || 0);
+
+  if (number < 0) {
+    return `(${formatBalanceAmount(number)})`;
+  }
+
+  return formatBalanceAmount(number);
+};
+
+const getInvoiceBalancePrintValues = (
+  play,
+  calculatedInvoiceTotal
+) => {
+  if (!play?.balanceApplied) {
+    return null;
+  }
+
+  const storedTotal = Number(play?.totalResult);
+
+  const invoiceTotal = Number.isFinite(storedTotal)
+    ? storedTotal
+    : Number(calculatedInvoiceTotal || 0);
+
+  const balanceAfter = Number(play?.balanceAfter);
+
+  if (!Number.isFinite(balanceAfter)) {
+    return null;
+  }
+
+  /*
+   * Use the final balance minus the invoice's current total.
+   *
+   * This stays correct for:
+   * - create invoice
+   * - edit invoice
+   * - positive invoice result
+   * - negative invoice result
+   */
+  const balanceBeforeInvoice =
+    balanceAfter - invoiceTotal;
+
+  return {
+    balanceBeforeInvoice,
+    invoiceTotal,
+    balanceAfter
+  };
 };
 
 const buildPrintHtml = (play) => {
@@ -1420,12 +1606,24 @@ const buildPrintHtml = (play) => {
     rows,
     play?.twoDigitRate || 100,
     play?.threeDigitRate || 100,
-    legacyCategoryId,
+    legacyCategoryId
   );
 
   const invoiceGrandTotal = getCategoryGroupsGrandTotal(groups);
   const invoiceGrandTotalExpression = buildCategoryGrandTotalExpression(groups);
-  const invoiceGrandTotalColor = invoiceGrandTotal >= 0 ? "#2563eb" : "#dc2626";
+  const invoiceGrandTotalColor =
+    invoiceGrandTotal >= 0 ? '#2563eb' : '#dc2626';
+
+  const balancePrint =
+    getInvoiceBalancePrintValues(
+      play,
+      invoiceGrandTotal
+    );
+
+  const balanceAfterColor =
+    balancePrint?.balanceAfter >= 0
+      ? '#059669'
+      : '#dc2626';
 
   const categorySections = groups
     .map((group, groupIndex) => {
@@ -1434,32 +1632,32 @@ const buildPrintHtml = (play) => {
           return `
             <tr>
               <td class="center">(${rowIndex + 1})</td>
-              <td class="left">${escapeHtml(row.rowTitle || "")}</td>
-              <td class="center">${row.isTwoNumber ? escapeHtml(formatPlainNumber(row.twoDigitNumber)) : ""}</td>
-              <td class="center">${row.isThreeNumber ? escapeHtml(formatPlainNumber(row.threeDigitNumber)) : ""}</td>
-              <td class="center">${row.isTwoNumber ? escapeHtml(formatNumberType(row.winTwoNumberType)) : ""}</td>
-              <td class="center">${row.isThreeNumber ? escapeHtml(formatNumberType(row.winThreeNumberType)) : ""}</td>
+              <td class="left">${escapeHtml(row.rowTitle || '')}</td>
+              <td class="center">${row.isTwoNumber ? escapeHtml(formatPlainNumber(row.twoDigitNumber)) : ''}</td>
+              <td class="center">${row.isThreeNumber ? escapeHtml(formatPlainNumber(row.threeDigitNumber)) : ''}</td>
+              <td class="center">${row.isTwoNumber ? escapeHtml(formatNumberType(row.winTwoNumberType)) : ''}</td>
+              <td class="center">${row.isThreeNumber ? escapeHtml(formatNumberType(row.winThreeNumberType)) : ''}</td>
               <td class="check">✓</td>
             </tr>
           `;
         })
-        .join("");
+        .join('');
 
       const calculation = group.calculation;
       const result = group.result;
-      const totalColor = result.grandTotal >= 0 ? "#2563eb" : "#dc2626";
+      const totalColor = result.grandTotal >= 0 ? '#2563eb' : '#dc2626';
 
       return `
-        <section class="category-section ${groupIndex > 0 ? "category-section-next" : ""}">
+        <section class="category-section ${groupIndex > 0 ? 'category-section-next' : ''}">
           <table>
             <thead>
               <tr>
                 <th class="category-column">${escapeHtml(group.categoryName)}</th>
-                <th class="row-title-column">${escapeHtml(t("invoice.print.rowTitle"))}</th>
-                <th>${escapeHtml(t("invoice.print.twoDigit"))}</th>
-                <th>${escapeHtml(t("invoice.print.threeDigit"))}</th>
-                <th>${escapeHtml(t("invoice.print.correctTwoDigit"))}</th>
-                <th>${escapeHtml(t("invoice.print.correctThreeDigit"))}</th>
+                <th class="row-title-column">${escapeHtml(t('invoice.print.rowTitle'))}</th>
+                <th>${escapeHtml(t('invoice.print.twoDigit'))}</th>
+                <th>${escapeHtml(t('invoice.print.threeDigit'))}</th>
+                <th>${escapeHtml(t('invoice.print.correctTwoDigit'))}</th>
+                <th>${escapeHtml(t('invoice.print.correctThreeDigit'))}</th>
                 <th class="check-column"></th>
               </tr>
             </thead>
@@ -1467,62 +1665,46 @@ const buildPrintHtml = (play) => {
           </table>
 
           <div class="summary">
-            ${
-              calculation.twoDigitBaseTotal > 0
-                ? `
+            ${calculation.twoDigitBaseTotal > 0 ? `
               <div class="line">
-                <span>${escapeHtml(t("invoice.print.twoDigit"))}</span>
+                <span>${escapeHtml(t('invoice.print.twoDigit'))}</span>
                 <span>${formatPlayResult(calculation.twoDigitBaseTotal)} × ${formatRate(calculation.twoDigitRate)} = ${formatPlayResult(result.twoDigitResult)}</span>
               </div>
-            `
-                : ""
-            }
+            ` : ''}
 
-            ${
-              calculation.threeDigitBaseTotal > 0
-                ? `
+            ${calculation.threeDigitBaseTotal > 0 ? `
               <div class="line">
-                <span>${escapeHtml(t("invoice.print.threeDigit"))}</span>
+                <span>${escapeHtml(t('invoice.print.threeDigit'))}</span>
                 <span>${formatPlayResult(calculation.threeDigitBaseTotal)} × ${formatRate(calculation.threeDigitRate)} = ${formatPlayResult(result.threeDigitResult)}</span>
               </div>
-            `
-                : ""
-            }
+            ` : ''}
 
-            ${
-              calculation.twoDigitCorrectTotal > 0
-                ? `
+            ${calculation.twoDigitCorrectTotal > 0 ? `
               <div class="line deduction">
-                <span>${escapeHtml(t("invoice.print.correctTwoDigit"))}</span>
+                <span>${escapeHtml(t('invoice.print.correctTwoDigit'))}</span>
                 <span>${formatPlayResult(calculation.twoDigitCorrectTotal)} × ${TWO_DIGIT_WIN_MULTIPLIER} = -${formatPlayResult(result.twoDigitCorrectResult)}</span>
               </div>
-            `
-                : ""
-            }
+            ` : ''}
 
-            ${
-              calculation.threeDigitCorrectTotal > 0
-                ? `
+            ${calculation.threeDigitCorrectTotal > 0 ? `
               <div class="line deduction">
-                <span>${escapeHtml(t("invoice.print.correctThreeDigit"))}</span>
+                <span>${escapeHtml(t('invoice.print.correctThreeDigit'))}</span>
                 <span>${formatPlayResult(calculation.threeDigitCorrectTotal)} × ${THREE_DIGIT_WIN_MULTIPLIER} = -${formatPlayResult(result.threeDigitCorrectResult)}</span>
               </div>
-            `
-                : ""
-            }
+            ` : ''}
 
             <div class="subtotal" style="color:${totalColor}">
-              <span>${escapeHtml(t("invoice.print.total"))}:</span>
+              <span>${escapeHtml(t('invoice.print.total'))}:</span>
               <span>${formatSignedPlayResult(result.grandTotal)}</span>
             </div>
           </div>
         </section>
       `;
     })
-    .join("");
+    .join('');
 
   return `<!doctype html>
-  <html lang="${locale.value === "km" ? "km" : "en"}">
+  <html lang="${locale.value === 'km' ? 'km' : 'en'}">
     <head>
       <meta charset="utf-8" />
       <title>&#8203;</title>
@@ -1553,20 +1735,27 @@ const buildPrintHtml = (play) => {
         .invoice-grand-total-title{text-align:center;font-size:14px;font-weight:900;color:#111827;margin-bottom:6px}
         .invoice-grand-total-expression{text-align:center;font-size:13px;font-weight:800;line-height:1.6;word-break:break-word;color:#374151}
         .invoice-grand-total-value{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:6px;padding-top:6px;border-top:1px solid #94a3b8;font-size:20px;font-weight:900}
-        @media print{body{padding:0}.invoice{max-width:none}.category-section,.invoice-grand-total{break-inside:avoid;page-break-inside:avoid}@page{size:portrait;margin:6mm}}
+        .customer-balance-box{margin-top:10px;border:2px solid #bbf7d0;border-radius:8px;padding:10px 12px;background:#f0fdf4;break-inside:avoid;page-break-inside:avoid}
+        .customer-balance-title{text-align:center;font-size:14px;font-weight:900;color:#166534;margin-bottom:8px}
+        .customer-balance-row{display:grid;grid-template-columns:minmax(190px,1fr) auto;gap:14px;align-items:center;padding:4px 0;font-size:13px}
+        .customer-balance-label{font-weight:700;color:#374151}
+        .customer-balance-number{font-weight:900;text-align:right}
+        .customer-balance-invoice{color:#2563eb}
+        .customer-balance-after{margin-top:4px;padding-top:7px;border-top:1px solid #86efac;font-size:15px}
+        .customer-balance-equation{margin-top:8px;border-top:1px dashed #86efac;padding-top:8px;text-align:center;font-size:16px;font-weight:900;line-height:1.5;word-break:break-word}
+        .customer-balance-equation-label{display:block;margin-bottom:2px;font-size:11px;font-weight:700;color:#6b7280}
+        @media print{body{padding:0}.invoice{max-width:none}.category-section,.invoice-grand-total,.customer-balance-box{break-inside:avoid;page-break-inside:avoid}@page{size:portrait;margin:6mm}}
       </style>
     </head>
     <body>
       <div class="invoice">
         <div class="invoice-header">
-          <div class="invoice-title">${escapeHtml(play?.title || "")}</div>
+          <div class="invoice-title">${escapeHtml(play?.title || '')}</div>
           <div class="invoice-meta">${escapeHtml(getCustomerName(play))} — ${escapeHtml(formatDateOnly(play?.playDate || play?.createdAt))}</div>
         </div>
-        ${categorySections || `<div>${escapeHtml(t("invoice.noRows"))}</div>`}
+        ${categorySections || `<div>${escapeHtml(t('invoice.noRows'))}</div>`}
 
-        ${
-          groups.length
-            ? `
+        ${groups.length ? `
           <section class="invoice-grand-total">
             <div class="invoice-grand-total-title">
               ${escapeHtml(getInvoiceGrandTotalLabel())}
@@ -1581,9 +1770,60 @@ const buildPrintHtml = (play) => {
               <span>${formatSignedPlayResult(invoiceGrandTotal)}</span>
             </div>
           </section>
-        `
-            : ""
-        }
+        ` : ''}
+
+        ${balancePrint ? `
+          <section class="customer-balance-box">
+            <div class="customer-balance-title">
+              ${escapeHtml(t('invoice.print.customerBalanceCalculation'))}
+            </div>
+
+            <div class="customer-balance-row">
+              <span class="customer-balance-label">
+                ${escapeHtml(t('invoice.print.balanceBeforeInvoice'))}
+              </span>
+
+              <span class="customer-balance-number">
+                ${formatBalanceAmount(balancePrint.balanceBeforeInvoice)}
+              </span>
+            </div>
+
+            <div class="customer-balance-row">
+              <span class="customer-balance-label">
+                ${escapeHtml(t('invoice.print.invoiceTotalResult'))}
+              </span>
+
+              <span class="customer-balance-number customer-balance-invoice">
+                ${formatSignedPlayResult(balancePrint.invoiceTotal)}
+              </span>
+            </div>
+
+            <div class="customer-balance-row customer-balance-after">
+              <span class="customer-balance-label">
+                ${escapeHtml(t('invoice.print.balanceAfterInvoice'))}
+              </span>
+
+              <span
+                class="customer-balance-number"
+                style="color:${balanceAfterColor}"
+              >
+                ${formatBalanceAmount(balancePrint.balanceAfter)}
+              </span>
+            </div>
+
+            <div class="customer-balance-equation">
+              <span class="customer-balance-equation-label">
+                ${escapeHtml(t('invoice.print.balanceCalculation'))}
+              </span>
+
+              ${formatBalanceAmount(balancePrint.balanceBeforeInvoice)}
+              +
+              ${formatBalanceInvoiceOperand(balancePrint.invoiceTotal)}
+              =
+              ${formatBalanceAmount(balancePrint.balanceAfter)}
+            </div>
+          </section>
+        ` : ''}
       </div>
     </body>
   </html>`;
@@ -1593,10 +1833,10 @@ const printLotteryPlay = async (play) => {
   if (!play) return;
 
   const playId = play.id || play._id;
-  const printWindow = window.open("", "_blank", "width=900,height=750");
+  const printWindow = window.open('', '_blank', 'width=900,height=750');
 
   if (!printWindow) {
-    errorMessage.value = t("invoice.errors.popupBlocked");
+    errorMessage.value = t('invoice.errors.popupBlocked');
     return;
   }
 
@@ -1618,16 +1858,16 @@ const printLotteryPlay = async (play) => {
       setTimeout(() => printWindow.print(), 250);
     };
 
-    if (printWindow.document.readyState === "complete") {
+    if (printWindow.document.readyState === 'complete') {
       startPrint();
     } else {
       printWindow.onload = startPrint;
     }
   } catch (error) {
-    console.error("Print invoice error:", error);
+    console.error('Print invoice error:', error);
     printWindow.close();
     errorMessage.value =
-      error.response?.data?.message || t("invoice.errors.print");
+      error.response?.data?.message || t('invoice.errors.print');
   } finally {
     printingPlayId.value = null;
   }
@@ -1649,14 +1889,12 @@ onMounted(async () => {
       <template #title>
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600"
-            >
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
               <i class="pi pi-file"></i>
             </div>
 
             <h1 class="truncate text-xl font-bold sm:text-2xl">
-              {{ t("invoice.title") }}
+              {{ t('invoice.title') }}
             </h1>
           </div>
 
@@ -1787,9 +2025,7 @@ onMounted(async () => {
         </section>
 
         <!-- Desktop filters -->
-        <section
-          class="mb-4 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_180px_280px_auto]"
-        >
+        <section class="mb-4 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_180px_280px_auto]">
           <InputText
             v-model="search"
             :placeholder="t('invoice.searchInvoiceOrRow')"
@@ -1863,7 +2099,7 @@ onMounted(async () => {
           <div v-if="loading" class="py-12 text-center">
             <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
             <p class="mt-2 text-sm text-gray-500">
-              {{ t("invoice.loadingInvoices") }}
+              {{ t('invoice.loadingInvoices') }}
             </p>
           </div>
 
@@ -1876,7 +2112,7 @@ onMounted(async () => {
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <h2 class="truncate text-base font-bold text-gray-900">
-                    {{ invoice.title || "-" }}
+                    {{ invoice.title || '-' }}
                   </h2>
 
                   <div class="mt-1 text-xs text-gray-500">
@@ -1884,9 +2120,7 @@ onMounted(async () => {
                   </div>
                 </div>
 
-                <span
-                  class="max-w-32 shrink-0 truncate rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700"
-                >
+                <span class="max-w-32 shrink-0 truncate rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
                   {{ getCategoryName(invoice) }}
                 </span>
               </div>
@@ -1894,7 +2128,7 @@ onMounted(async () => {
               <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div class="min-w-0 rounded-lg bg-gray-50 p-2">
                   <div class="text-xs text-gray-500">
-                    {{ t("invoice.fields.customer") }}
+                    {{ t('invoice.fields.customer') }}
                   </div>
                   <div class="mt-1 truncate font-semibold">
                     {{ getCustomerName(invoice) }}
@@ -1903,7 +2137,7 @@ onMounted(async () => {
 
                 <div class="min-w-0 rounded-lg bg-gray-50 p-2">
                   <div class="text-xs text-gray-500">
-                    {{ t("invoice.fields.product") }}
+                    {{ t('invoice.fields.product') }}
                   </div>
                   <div class="mt-1 truncate font-semibold">
                     {{ getProductName(invoice) }}
@@ -1955,7 +2189,7 @@ onMounted(async () => {
               v-if="!lotteryPlays.length"
               class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500"
             >
-              {{ t("invoice.noInvoices") }}
+              {{ t('invoice.noInvoices') }}
             </div>
 
             <div
@@ -1973,7 +2207,7 @@ onMounted(async () => {
               />
 
               <span class="text-sm font-medium text-gray-600">
-                {{ t("invoice.pageOf", { page, total: totalPages }) }}
+                {{ t('invoice.pageOf', { page, total: totalPages }) }}
               </span>
 
               <Button
@@ -2005,43 +2239,28 @@ onMounted(async () => {
             tableStyle="min-width: 1080px"
             @page="onPageChange"
           >
-            <Column
-              :header="t('invoice.columns.invoiceName')"
-              style="min-width: 210px"
-            >
+            <Column :header="t('invoice.columns.invoiceName')" style="min-width: 210px">
               <template #body="{ data }">
-                <div class="font-semibold">{{ data.title || "-" }}</div>
+                <div class="font-semibold">{{ data.title || '-' }}</div>
                 <div class="text-xs text-gray-500">
                   {{ formatDate(data.createdAt) }}
                 </div>
               </template>
             </Column>
 
-            <Column
-              :header="t('invoice.columns.category')"
-              style="min-width: 150px"
-            >
+            <Column :header="t('invoice.columns.category')" style="min-width: 150px">
               <template #body="{ data }">{{ getCategoryName(data) }}</template>
             </Column>
 
-            <Column
-              :header="t('invoice.columns.product')"
-              style="min-width: 150px"
-            >
+            <Column :header="t('invoice.columns.product')" style="min-width: 150px">
               <template #body="{ data }">{{ getProductName(data) }}</template>
             </Column>
 
-            <Column
-              :header="t('invoice.columns.customer')"
-              style="min-width: 180px"
-            >
+            <Column :header="t('invoice.columns.customer')" style="min-width: 180px">
               <template #body="{ data }">{{ getCustomerName(data) }}</template>
             </Column>
 
-            <Column
-              :header="t('invoice.columns.invoiceDate')"
-              style="min-width: 130px"
-            >
+            <Column :header="t('invoice.columns.invoiceDate')" style="min-width: 130px">
               <template #body="{ data }">
                 {{ formatDateOnly(data.playDate || data.createdAt) }}
               </template>
@@ -2055,42 +2274,17 @@ onMounted(async () => {
             >
               <template #body="{ data }">
                 <div class="flex gap-2">
-                  <Button
-                    type="button"
-                    icon="pi pi-eye"
-                    size="small"
-                    severity="help"
-                    @click="openDetailDialog(data)"
-                  />
-                  <Button
-                    type="button"
-                    icon="pi pi-print"
-                    size="small"
-                    severity="secondary"
-                    :loading="printingPlayId === (data.id || data._id)"
-                    @click="printLotteryPlay(data)"
-                  />
-                  <Button
-                    type="button"
-                    icon="pi pi-pencil"
-                    size="small"
-                    severity="info"
-                    @click="openEditDialog(data)"
-                  />
-                  <Button
-                    type="button"
-                    icon="pi pi-trash"
-                    size="small"
-                    severity="danger"
-                    @click="openDeleteDialog(data)"
-                  />
+                  <Button type="button" icon="pi pi-eye" size="small" severity="help" @click="openDetailDialog(data)" />
+                  <Button type="button" icon="pi pi-print" size="small" severity="secondary" :loading="printingPlayId === (data.id || data._id)" @click="printLotteryPlay(data)" />
+                  <Button type="button" icon="pi pi-pencil" size="small" severity="info" @click="openEditDialog(data)" />
+                  <Button type="button" icon="pi pi-trash" size="small" severity="danger" @click="openDeleteDialog(data)" />
                 </div>
               </template>
             </Column>
 
             <template #empty>
               <div class="py-8 text-center text-gray-500">
-                {{ t("invoice.noInvoices") }}
+                {{ t('invoice.noInvoices') }}
               </div>
             </template>
           </DataTable>
@@ -2106,16 +2300,8 @@ onMounted(async () => {
       position="center"
       :autoZIndex="true"
       :baseZIndex="20000"
-      :header="
-        isEditMode
-          ? t('invoice.dialogs.editTitle')
-          : t('invoice.dialogs.createTitle')
-      "
-      :style="{
-        width: 'calc(100vw - 24px)',
-        maxWidth: '1180px',
-        maxHeight: 'calc(100dvh - 24px)',
-      }"
+      :header="isEditMode ? t('invoice.dialogs.editTitle') : t('invoice.dialogs.createTitle')"
+      :style="{ width: 'calc(100vw - 24px)', maxWidth: '1180px', maxHeight: 'calc(100dvh - 24px)' }"
       :closable="!saving"
       :closeOnEscape="!saving"
       :draggable="false"
@@ -2124,37 +2310,26 @@ onMounted(async () => {
       class="invoice-form-dialog"
     >
       <div class="space-y-4">
-        <Message
-          v-if="errorMessage"
-          severity="error"
-          closable
-          @close="errorMessage = ''"
-        >
+        <Message v-if="errorMessage" severity="error" closable @close="errorMessage = ''">
           {{ errorMessage }}
         </Message>
 
         <section class="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
           <h2 class="mb-3 text-base font-bold text-gray-900">
-            {{ t("invoice.sections.information") }}
+            {{ t('invoice.sections.information') }}
           </h2>
 
-          <div
-            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div class="sm:col-span-2">
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.invoiceName") }}
+                {{ t('invoice.fields.invoiceName') }}
               </label>
-              <InputText
-                v-model="playForm.title"
-                class="w-full"
-                :placeholder="t('invoice.placeholders.invoiceName')"
-              />
+              <InputText v-model="playForm.title" class="w-full" :placeholder="t('invoice.placeholders.invoiceName')" />
             </div>
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.invoiceDate") }}
+                {{ t('invoice.fields.invoiceDate') }}
               </label>
               <DatePicker
                 v-model="playForm.playDate"
@@ -2171,7 +2346,7 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.customer") }}
+                {{ t('invoice.fields.customer') }}
               </label>
               <Select
                 v-model="playForm.customerId"
@@ -2191,7 +2366,7 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.product") }}
+                {{ t('invoice.fields.product') }}
               </label>
               <MultiSelect
                 v-model="playForm.productIds"
@@ -2214,7 +2389,7 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.twoDigitRate") }}
+                {{ t('invoice.fields.twoDigitRate') }}
               </label>
               <Select
                 v-model="playForm.twoDigitRate"
@@ -2231,7 +2406,7 @@ onMounted(async () => {
 
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">
-                {{ t("invoice.fields.threeDigitRate") }}
+                {{ t('invoice.fields.threeDigitRate') }}
               </label>
               <Select
                 v-model="playForm.threeDigitRate"
@@ -2252,18 +2427,12 @@ onMounted(async () => {
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-bold text-gray-900">
-                {{ t("invoice.sections.rows") }}
+                {{ t('invoice.sections.rows') }}
               </h2>
-              <p class="text-xs text-gray-500">{{ t("invoice.rowsHint") }}</p>
+              <p class="text-xs text-gray-500">{{ t('invoice.rowsHint') }}</p>
             </div>
 
-            <Button
-              type="button"
-              :label="t('invoice.addRow')"
-              icon="pi pi-plus"
-              size="small"
-              @click="addPlayRow"
-            />
+            <Button type="button" :label="t('invoice.addRow')" icon="pi pi-plus" size="small" @click="addPlayRow" />
           </div>
 
           <div class="space-y-3">
@@ -2274,55 +2443,29 @@ onMounted(async () => {
             >
               <div class="mb-3 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                  <span
-                    class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700"
-                  >
+                  <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-sm font-bold text-blue-700">
                     {{ index + 1 }}
                   </span>
-                  <span class="font-bold text-gray-900">{{
-                    t("invoice.invoiceRow")
-                  }}</span>
+                  <span class="font-bold text-gray-900">{{ t('invoice.invoiceRow') }}</span>
                 </div>
 
                 <div class="flex gap-2">
-                  <Button
-                    type="button"
-                    icon="pi pi-copy"
-                    size="small"
-                    severity="secondary"
-                    outlined
-                    rounded
-                    @click="duplicatePlayRow(index)"
-                  />
-                  <Button
-                    type="button"
-                    icon="pi pi-trash"
-                    size="small"
-                    severity="danger"
-                    outlined
-                    rounded
-                    @click="removePlayRow(index)"
-                  />
+                  <Button type="button" icon="pi pi-copy" size="small" severity="secondary" outlined rounded @click="duplicatePlayRow(index)" />
+                  <Button type="button" icon="pi pi-trash" size="small" severity="danger" outlined rounded @click="removePlayRow(index)" />
                 </div>
               </div>
 
               <div class="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label class="mb-1 block text-sm font-semibold text-gray-700">
-                    {{ t("invoice.fields.rowName") }}
-                    <span class="text-red-500">*</span>
+                    {{ t('invoice.fields.rowName') }} <span class="text-red-500">*</span>
                   </label>
-                  <InputText
-                    v-model="row.rowTitle"
-                    class="w-full"
-                    :placeholder="t('invoice.placeholders.rowName')"
-                  />
+                  <InputText v-model="row.rowTitle" class="w-full" :placeholder="t('invoice.placeholders.rowName')" />
                 </div>
 
                 <div>
                   <label class="mb-1 block text-sm font-semibold text-gray-700">
-                    {{ t("invoice.fields.category") }}
-                    <span class="text-red-500">*</span>
+                    {{ t('invoice.fields.category') }} <span class="text-red-500">*</span>
                   </label>
                   <Select
                     v-model="row.categoryId"
@@ -2341,108 +2484,44 @@ onMounted(async () => {
               </div>
 
               <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <section
-                  :class="[
-                    'rounded-xl border p-3 sm:p-4',
-                    row.isTwoNumber
-                      ? 'border-blue-300 bg-blue-50/50'
-                      : 'border-gray-200 bg-gray-50',
-                  ]"
-                >
+                <section :class="['rounded-xl border p-3 sm:p-4', row.isTwoNumber ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200 bg-gray-50']">
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">2D</div>
-                      <div class="text-xs text-gray-500">
-                        {{ t("invoice.enableTwoDigit") }}
-                      </div>
+                      <div class="text-xs text-gray-500">{{ t('invoice.enableTwoDigit') }}</div>
                     </div>
-                    <ToggleSwitch
-                      v-model="row.isTwoNumber"
-                      :disabled="!hasTwoDigitProduct"
-                    />
+                    <ToggleSwitch v-model="row.isTwoNumber" :disabled="!hasTwoDigitProduct" />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label
-                        class="mb-1 block text-xs font-semibold text-gray-600"
-                        >{{ t("invoice.fields.twoDigitNumber") }}</label
-                      >
-                      <InputNumber
-                        v-model="row.twoDigitNumber"
-                        class="w-full"
-                        input-class="w-full"
-                        :min="0"
-                        :disabled="!row.isTwoNumber"
-                        :useGrouping="false"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.twoDigitNumber') }}</label>
+                      <InputNumber v-model="row.twoDigitNumber" class="w-full" input-class="w-full" :min="0" :disabled="!row.isTwoNumber" :useGrouping="false" />
                     </div>
                     <div>
-                      <label
-                        class="mb-1 block text-xs font-semibold text-gray-600"
-                        >{{ t("invoice.fields.correctTwoDigit") }}</label
-                      >
-                      <InputNumber
-                        v-model="row.winTwoNumberType"
-                        class="w-full"
-                        input-class="w-full"
-                        :min="0"
-                        :disabled="!row.isTwoNumber"
-                        :useGrouping="false"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.correctTwoDigit') }}</label>
+                      <InputNumber v-model="row.winTwoNumberType" class="w-full" input-class="w-full" :min="0" :disabled="!row.isTwoNumber" :useGrouping="false" />
                     </div>
                   </div>
                 </section>
 
-                <section
-                  :class="[
-                    'rounded-xl border p-3 sm:p-4',
-                    row.isThreeNumber
-                      ? 'border-violet-300 bg-violet-50/50'
-                      : 'border-gray-200 bg-gray-50',
-                  ]"
-                >
+                <section :class="['rounded-xl border p-3 sm:p-4', row.isThreeNumber ? 'border-violet-300 bg-violet-50/50' : 'border-gray-200 bg-gray-50']">
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold text-gray-900">3D</div>
-                      <div class="text-xs text-gray-500">
-                        {{ t("invoice.enableThreeDigit") }}
-                      </div>
+                      <div class="text-xs text-gray-500">{{ t('invoice.enableThreeDigit') }}</div>
                     </div>
-                    <ToggleSwitch
-                      v-model="row.isThreeNumber"
-                      :disabled="!hasThreeDigitProduct"
-                    />
+                    <ToggleSwitch v-model="row.isThreeNumber" :disabled="!hasThreeDigitProduct" />
                   </div>
 
                   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label
-                        class="mb-1 block text-xs font-semibold text-gray-600"
-                        >{{ t("invoice.fields.threeDigitNumber") }}</label
-                      >
-                      <InputNumber
-                        v-model="row.threeDigitNumber"
-                        class="w-full"
-                        input-class="w-full"
-                        :min="0"
-                        :disabled="!row.isThreeNumber"
-                        :useGrouping="false"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.threeDigitNumber') }}</label>
+                      <InputNumber v-model="row.threeDigitNumber" class="w-full" input-class="w-full" :min="0" :disabled="!row.isThreeNumber" :useGrouping="false" />
                     </div>
                     <div>
-                      <label
-                        class="mb-1 block text-xs font-semibold text-gray-600"
-                        >{{ t("invoice.fields.correctThreeDigit") }}</label
-                      >
-                      <InputNumber
-                        v-model="row.winThreeNumberType"
-                        class="w-full"
-                        input-class="w-full"
-                        :min="0"
-                        :disabled="!row.isThreeNumber"
-                        :useGrouping="false"
-                      />
+                      <label class="mb-1 block text-xs font-semibold text-gray-600">{{ t('invoice.fields.correctThreeDigit') }}</label>
+                      <InputNumber v-model="row.winThreeNumberType" class="w-full" input-class="w-full" :min="0" :disabled="!row.isThreeNumber" :useGrouping="false" />
                     </div>
                   </div>
                 </section>
@@ -2452,9 +2531,7 @@ onMounted(async () => {
         </section>
 
         <section class="space-y-3">
-          <div class="text-sm font-bold text-gray-900">
-            Category calculations
-          </div>
+          <div class="text-sm font-bold text-gray-900">Category calculations</div>
 
           <article
             v-for="group in formCategoryGroups"
@@ -2462,75 +2539,28 @@ onMounted(async () => {
             class="rounded-xl border border-gray-200 bg-gray-50 p-4"
           >
             <div class="mb-3 flex items-center justify-between gap-3">
-              <div class="font-bold text-gray-900">
-                {{ group.categoryName }}
-              </div>
-              <div
-                class="text-xl font-extrabold"
-                :class="getGrandTotalColorClass(group.result.grandTotal)"
-              >
+              <div class="font-bold text-gray-900">{{ group.categoryName }}</div>
+              <div class="text-xl font-extrabold" :class="getGrandTotalColorClass(group.result.grandTotal)">
                 {{ formatSignedPlayResult(group.result.grandTotal) }}
               </div>
             </div>
 
             <div class="space-y-1 text-sm">
-              <div
-                v-if="group.calculation.twoDigitBaseTotal > 0"
-                class="flex justify-between gap-3"
-              >
-                <span class="font-semibold">{{
-                  t("invoice.print.twoDigit")
-                }}</span>
-                <span
-                  >{{
-                    formatPlainNumber(group.calculation.twoDigitBaseTotal)
-                  }}
-                  × {{ formatRate(group.calculation.twoDigitRate) }} =
-                  {{ formatPlayResult(group.result.twoDigitResult) }}</span
-                >
+              <div v-if="group.calculation.twoDigitBaseTotal > 0" class="flex justify-between gap-3">
+                <span class="font-semibold">{{ t('invoice.print.twoDigit') }}</span>
+                <span>{{ formatPlainNumber(group.calculation.twoDigitBaseTotal) }} × {{ formatRate(group.calculation.twoDigitRate) }} = {{ formatPlayResult(group.result.twoDigitResult) }}</span>
               </div>
-              <div
-                v-if="group.calculation.threeDigitBaseTotal > 0"
-                class="flex justify-between gap-3"
-              >
-                <span class="font-semibold">{{
-                  t("invoice.print.threeDigit")
-                }}</span>
-                <span
-                  >{{
-                    formatPlainNumber(group.calculation.threeDigitBaseTotal)
-                  }}
-                  × {{ formatRate(group.calculation.threeDigitRate) }} =
-                  {{ formatPlayResult(group.result.threeDigitResult) }}</span
-                >
+              <div v-if="group.calculation.threeDigitBaseTotal > 0" class="flex justify-between gap-3">
+                <span class="font-semibold">{{ t('invoice.print.threeDigit') }}</span>
+                <span>{{ formatPlainNumber(group.calculation.threeDigitBaseTotal) }} × {{ formatRate(group.calculation.threeDigitRate) }} = {{ formatPlayResult(group.result.threeDigitResult) }}</span>
               </div>
-              <div
-                v-if="group.calculation.twoDigitCorrectTotal > 0"
-                class="flex justify-between gap-3 text-red-600"
-              >
-                <span>{{ t("invoice.print.correctTwoDigit") }}</span>
-                <span
-                  >{{
-                    formatPlainNumber(group.calculation.twoDigitCorrectTotal)
-                  }}
-                  × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -{{
-                    formatPlayResult(group.result.twoDigitCorrectResult)
-                  }}</span
-                >
+              <div v-if="group.calculation.twoDigitCorrectTotal > 0" class="flex justify-between gap-3 text-red-600">
+                <span>{{ t('invoice.print.correctTwoDigit') }}</span>
+                <span>{{ formatPlainNumber(group.calculation.twoDigitCorrectTotal) }} × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(group.result.twoDigitCorrectResult) }}</span>
               </div>
-              <div
-                v-if="group.calculation.threeDigitCorrectTotal > 0"
-                class="flex justify-between gap-3 text-red-600"
-              >
-                <span>{{ t("invoice.print.correctThreeDigit") }}</span>
-                <span
-                  >{{
-                    formatPlainNumber(group.calculation.threeDigitCorrectTotal)
-                  }}
-                  × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -{{
-                    formatPlayResult(group.result.threeDigitCorrectResult)
-                  }}</span
-                >
+              <div v-if="group.calculation.threeDigitCorrectTotal > 0" class="flex justify-between gap-3 text-red-600">
+                <span>{{ t('invoice.print.correctThreeDigit') }}</span>
+                <span>{{ formatPlainNumber(group.calculation.threeDigitCorrectTotal) }} × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(group.result.threeDigitCorrectResult) }}</span>
               </div>
             </div>
           </article>
@@ -2559,25 +2589,8 @@ onMounted(async () => {
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end">
-          <Button
-            type="button"
-            :label="t('invoice.cancel')"
-            severity="secondary"
-            outlined
-            :disabled="saving"
-            @click="dialogVisible = false"
-          />
-          <Button
-            type="button"
-            :label="
-              isEditMode
-                ? t('invoice.updateInvoice')
-                : t('invoice.createInvoice')
-            "
-            icon="pi pi-save"
-            :loading="saving"
-            @click="saveLotteryPlay"
-          />
+          <Button type="button" :label="t('invoice.cancel')" severity="secondary" outlined :disabled="saving" @click="dialogVisible = false" />
+          <Button type="button" :label="isEditMode ? t('invoice.updateInvoice') : t('invoice.createInvoice')" icon="pi pi-save" :loading="saving" @click="saveLotteryPlay" />
         </div>
       </template>
     </Dialog>
@@ -2590,59 +2603,22 @@ onMounted(async () => {
       :autoZIndex="true"
       :baseZIndex="20000"
       :header="selectedDetailPlay?.title || t('invoice.dialogs.detailsTitle')"
-      :style="{
-        width: 'calc(100vw - 24px)',
-        maxWidth: '760px',
-        maxHeight: 'calc(100dvh - 24px)',
-      }"
+      :style="{ width: 'calc(100vw - 24px)', maxWidth: '760px', maxHeight: 'calc(100dvh - 24px)' }"
       :draggable="false"
       :blockScroll="true"
       class="invoice-detail-dialog"
     >
       <div class="space-y-4">
-        <Message v-if="detailLoading" severity="info">{{
-          t("invoice.loadingInvoice")
-        }}</Message>
+        <Message v-if="detailLoading" severity="info">{{ t('invoice.loadingInvoice') }}</Message>
 
-        <div
-          v-if="selectedDetailPlay"
-          class="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-sm"
-        >
-          <div>
-            <div class="text-xs text-gray-500">
-              {{ t("invoice.fields.customer") }}
-            </div>
-            <div class="mt-1 font-semibold">
-              {{ getCustomerName(selectedDetailPlay) }}
-            </div>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500">
-              {{ t("invoice.fields.date") }}
-            </div>
-            <div class="mt-1 font-semibold">
-              {{
-                formatDateOnly(
-                  selectedDetailPlay.playDate || selectedDetailPlay.createdAt,
-                )
-              }}
-            </div>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500">
-              {{ t("invoice.fields.product") }}
-            </div>
-            <div class="mt-1 font-semibold">
-              {{ getProductName(selectedDetailPlay) }}
-            </div>
-          </div>
+        <div v-if="selectedDetailPlay" class="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-sm">
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.customer') }}</div><div class="mt-1 font-semibold">{{ getCustomerName(selectedDetailPlay) }}</div></div>
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.date') }}</div><div class="mt-1 font-semibold">{{ formatDateOnly(selectedDetailPlay.playDate || selectedDetailPlay.createdAt) }}</div></div>
+          <div><div class="text-xs text-gray-500">{{ t('invoice.fields.product') }}</div><div class="mt-1 font-semibold">{{ getProductName(selectedDetailPlay) }}</div></div>
         </div>
 
-        <div
-          v-if="!detailCategoryGroups.length"
-          class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500"
-        >
-          {{ t("invoice.noRows") }}
+        <div v-if="!detailCategoryGroups.length" class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500">
+          {{ t('invoice.noRows') }}
         </div>
 
         <section
@@ -2654,24 +2630,12 @@ onMounted(async () => {
             <table class="w-full min-w-[720px] border-collapse text-sm">
               <thead>
                 <tr class="text-center font-bold">
-                  <th class="border px-3 py-2 min-w-[110px]">
-                    {{ group.categoryName }}
-                  </th>
-                  <th class="border px-3 py-2 min-w-[160px]">
-                    {{ t("invoice.print.rowTitle") }}
-                  </th>
-                  <th class="border px-3 py-2">
-                    {{ t("invoice.print.twoDigit") }}
-                  </th>
-                  <th class="border px-3 py-2">
-                    {{ t("invoice.print.threeDigit") }}
-                  </th>
-                  <th class="border px-3 py-2">
-                    {{ t("invoice.print.correctTwoDigit") }}
-                  </th>
-                  <th class="border px-3 py-2">
-                    {{ t("invoice.print.correctThreeDigit") }}
-                  </th>
+                  <th class="border px-3 py-2 min-w-[110px]">{{ group.categoryName }}</th>
+                  <th class="border px-3 py-2 min-w-[160px]">{{ t('invoice.print.rowTitle') }}</th>
+                  <th class="border px-3 py-2">{{ t('invoice.print.twoDigit') }}</th>
+                  <th class="border px-3 py-2">{{ t('invoice.print.threeDigit') }}</th>
+                  <th class="border px-3 py-2">{{ t('invoice.print.correctTwoDigit') }}</th>
+                  <th class="border px-3 py-2">{{ t('invoice.print.correctThreeDigit') }}</th>
                   <th class="border px-3 py-2 w-10"></th>
                 </tr>
               </thead>
@@ -2679,43 +2643,15 @@ onMounted(async () => {
               <tbody>
                 <tr
                   v-for="(row, rowIndex) in group.rows"
-                  :key="
-                    row._id || row.localId || `${group.categoryId}-${rowIndex}`
-                  "
+                  :key="row._id || row.localId || `${group.categoryId}-${rowIndex}`"
                   class="text-center"
                 >
                   <td class="border px-3 py-2">({{ rowIndex + 1 }})</td>
-                  <td class="border px-3 py-2 text-left font-medium">
-                    {{ row.rowTitle || row.title || "" }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{
-                      row.isTwoNumber
-                        ? formatPlainNumber(row.twoDigitNumber)
-                        : ""
-                    }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{
-                      row.isThreeNumber
-                        ? formatPlainNumber(row.threeDigitNumber)
-                        : ""
-                    }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{
-                      row.isTwoNumber
-                        ? formatNumberType(row.winTwoNumberType)
-                        : ""
-                    }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{
-                      row.isThreeNumber
-                        ? formatNumberType(row.winThreeNumberType)
-                        : ""
-                    }}
-                  </td>
+                  <td class="border px-3 py-2 text-left font-medium">{{ row.rowTitle || row.title || '' }}</td>
+                  <td class="border px-3 py-2">{{ row.isTwoNumber ? formatPlainNumber(row.twoDigitNumber) : '' }}</td>
+                  <td class="border px-3 py-2">{{ row.isThreeNumber ? formatPlainNumber(row.threeDigitNumber) : '' }}</td>
+                  <td class="border px-3 py-2">{{ row.isTwoNumber ? formatNumberType(row.winTwoNumberType) : '' }}</td>
+                  <td class="border px-3 py-2">{{ row.isThreeNumber ? formatNumberType(row.winThreeNumberType) : '' }}</td>
                   <td class="border px-3 py-2 font-bold text-green-500">✓</td>
                 </tr>
               </tbody>
@@ -2723,75 +2659,28 @@ onMounted(async () => {
           </div>
 
           <div class="mt-3 max-w-md space-y-1 px-2 text-sm">
-            <div
-              v-if="group.calculation.twoDigitBaseTotal > 0"
-              class="flex justify-between gap-3"
-            >
-              <span class="font-semibold">{{
-                t("invoice.print.twoDigit")
-              }}</span>
-              <span
-                >{{ formatPlainNumber(group.calculation.twoDigitBaseTotal) }} ×
-                {{ formatRate(group.calculation.twoDigitRate) }} =
-                {{ formatPlayResult(group.result.twoDigitResult) }}</span
-              >
+            <div v-if="group.calculation.twoDigitBaseTotal > 0" class="flex justify-between gap-3">
+              <span class="font-semibold">{{ t('invoice.print.twoDigit') }}</span>
+              <span>{{ formatPlainNumber(group.calculation.twoDigitBaseTotal) }} × {{ formatRate(group.calculation.twoDigitRate) }} = {{ formatPlayResult(group.result.twoDigitResult) }}</span>
             </div>
 
-            <div
-              v-if="group.calculation.threeDigitBaseTotal > 0"
-              class="flex justify-between gap-3"
-            >
-              <span class="font-semibold">{{
-                t("invoice.print.threeDigit")
-              }}</span>
-              <span
-                >{{
-                  formatPlainNumber(group.calculation.threeDigitBaseTotal)
-                }}
-                × {{ formatRate(group.calculation.threeDigitRate) }} =
-                {{ formatPlayResult(group.result.threeDigitResult) }}</span
-              >
+            <div v-if="group.calculation.threeDigitBaseTotal > 0" class="flex justify-between gap-3">
+              <span class="font-semibold">{{ t('invoice.print.threeDigit') }}</span>
+              <span>{{ formatPlainNumber(group.calculation.threeDigitBaseTotal) }} × {{ formatRate(group.calculation.threeDigitRate) }} = {{ formatPlayResult(group.result.threeDigitResult) }}</span>
             </div>
 
-            <div
-              v-if="group.calculation.twoDigitCorrectTotal > 0"
-              class="flex justify-between gap-3"
-            >
-              <span class="font-semibold">{{
-                t("invoice.print.correctTwoDigit")
-              }}</span>
-              <span
-                >{{
-                  formatPlainNumber(group.calculation.twoDigitCorrectTotal)
-                }}
-                × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -{{
-                  formatPlayResult(group.result.twoDigitCorrectResult)
-                }}</span
-              >
+            <div v-if="group.calculation.twoDigitCorrectTotal > 0" class="flex justify-between gap-3">
+              <span class="font-semibold">{{ t('invoice.print.correctTwoDigit') }}</span>
+              <span>{{ formatPlainNumber(group.calculation.twoDigitCorrectTotal) }} × {{ TWO_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(group.result.twoDigitCorrectResult) }}</span>
             </div>
 
-            <div
-              v-if="group.calculation.threeDigitCorrectTotal > 0"
-              class="flex justify-between gap-3"
-            >
-              <span class="font-semibold">{{
-                t("invoice.print.correctThreeDigit")
-              }}</span>
-              <span
-                >{{
-                  formatPlainNumber(group.calculation.threeDigitCorrectTotal)
-                }}
-                × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -{{
-                  formatPlayResult(group.result.threeDigitCorrectResult)
-                }}</span
-              >
+            <div v-if="group.calculation.threeDigitCorrectTotal > 0" class="flex justify-between gap-3">
+              <span class="font-semibold">{{ t('invoice.print.correctThreeDigit') }}</span>
+              <span>{{ formatPlainNumber(group.calculation.threeDigitCorrectTotal) }} × {{ THREE_DIGIT_WIN_MULTIPLIER }} = -{{ formatPlayResult(group.result.threeDigitCorrectResult) }}</span>
             </div>
 
-            <div
-              class="mt-2 flex justify-between border-t border-gray-300 pt-2 text-lg font-extrabold"
-              :class="getGrandTotalColorClass(group.result.grandTotal)"
-            >
-              <span>{{ t("invoice.print.total") }}</span>
+            <div class="mt-2 flex justify-between border-t border-gray-300 pt-2 text-lg font-extrabold" :class="getGrandTotalColorClass(group.result.grandTotal)">
+              <span>{{ t('invoice.print.total') }}</span>
               <span>{{ formatSignedPlayResult(group.result.grandTotal) }}</span>
             </div>
           </div>
@@ -2820,23 +2709,8 @@ onMounted(async () => {
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
-          <Button
-            type="button"
-            :label="t('invoice.close')"
-            severity="secondary"
-            outlined
-            @click="detailDialogVisible = false"
-          />
-          <Button
-            type="button"
-            :label="t('invoice.printButton')"
-            icon="pi pi-print"
-            :loading="
-              printingPlayId ===
-              (selectedDetailPlay?.id || selectedDetailPlay?._id)
-            "
-            @click="printLotteryPlay(selectedDetailPlay)"
-          />
+          <Button type="button" :label="t('invoice.close')" severity="secondary" outlined @click="detailDialogVisible = false" />
+          <Button type="button" :label="t('invoice.printButton')" icon="pi pi-print" :loading="printingPlayId === (selectedDetailPlay?.id || selectedDetailPlay?._id)" @click="printLotteryPlay(selectedDetailPlay)" />
         </div>
       </template>
     </Dialog>
@@ -2854,32 +2728,14 @@ onMounted(async () => {
       :draggable="false"
     >
       <div>
-        <div class="font-semibold text-gray-900">
-          {{ t("invoice.deleteQuestion") }}
-        </div>
-        <div class="mt-2 text-sm text-gray-500">
-          {{ selectedDeletePlay?.title }}
-        </div>
+        <div class="font-semibold text-gray-900">{{ t('invoice.deleteQuestion') }}</div>
+        <div class="mt-2 text-sm text-gray-500">{{ selectedDeletePlay?.title }}</div>
       </div>
 
       <template #footer>
         <div class="grid w-full grid-cols-2 gap-2">
-          <Button
-            type="button"
-            :label="t('invoice.cancel')"
-            severity="secondary"
-            outlined
-            :disabled="deleting"
-            @click="closeDeleteDialog"
-          />
-          <Button
-            type="button"
-            :label="t('invoice.delete')"
-            icon="pi pi-trash"
-            severity="danger"
-            :loading="deleting"
-            @click="confirmDeleteLotteryPlay"
-          />
+          <Button type="button" :label="t('invoice.cancel')" severity="secondary" outlined :disabled="deleting" @click="closeDeleteDialog" />
+          <Button type="button" :label="t('invoice.delete')" icon="pi pi-trash" severity="danger" :loading="deleting" @click="confirmDeleteLotteryPlay" />
         </div>
       </template>
     </Dialog>

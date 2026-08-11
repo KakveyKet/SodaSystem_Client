@@ -668,6 +668,15 @@ export default {
       total: "Total",
       preparing: "Preparing invoice...",
       prepareError: "Could not prepare this invoice for printing.",
+      customerBalanceCalculation: "Customer Balance Calculation",
+
+      balanceBeforeInvoice: "Customer Balance Before Invoice",
+
+      invoiceTotalResult: "Invoice Total Result",
+
+      balanceAfterInvoice: "Customer Balance After Invoice",
+
+      balanceCalculation: "Calculation",
     },
 
     messages: {
@@ -832,54 +841,46 @@ export default {
       invalidCredentials: "Invalid username, email, or password",
     },
   },
-  customerDepositReport: {
-    title: "Customer Loan / Deposit Report",
-
+  customerTransactionReport: {
+    title: "Customer Balance Transaction Report",
     currentWeekHint: "Default view: current week (Monday to Sunday)",
-
-    transactionsTitle: "Deposit Transactions",
-
-    loading: "Loading transactions...",
-
-    empty: "No deposit transactions found for this period.",
+    transactionsTitle: "Customer Transactions",
+    empty: "No customer transactions found for this period.",
 
     fields: {
       date: "Date",
-
       customer: "Customer",
-
       dateRange: "Date Range",
-
-      loanDeposit: "Loan / Deposit",
-
+      type: "Type",
+      change: "Balance Change",
       before: "Balance Before",
-
       after: "Balance After",
-
       description: "Description",
     },
 
     filters: {
       title: "Report Filters",
-
       allCustomers: "All Customers",
+    },
+
+    types: {
+      deposit: "Deposit",
+      withdraw: "Withdraw",
+      invoice: "Invoice",
     },
 
     actions: {
       search: "Search",
-
       reset: "Reset",
-
       print: "Print",
     },
 
     defaults: {
-      description: "Customer loan / deposit",
+      deletedCustomer: "Deleted Customer",
     },
 
     errors: {
-      fetch: "Could not load customer deposit report",
-
+      fetch: "Could not load customer balance transaction report",
       popupBlocked:
         "Popup was blocked. Please allow popups to print the report.",
     },
